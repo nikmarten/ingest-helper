@@ -1,0 +1,16 @@
+services:
+  ingest-list:
+    build: .
+    image: ingest-list:latest
+    container_name: ingest-list
+    restart: unless-stopped
+    ports:
+      # Host:Container — adjust the host port if 3000 is taken on your server
+      - "3000:3000"
+    volumes:
+      # Persistent storage for db.json (projects, crew, cameras, ingests)
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - TZ=Europe/Berlin

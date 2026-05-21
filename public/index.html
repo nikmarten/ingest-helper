@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingest List</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ==================== TOP BAR ==================== -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <div class="wordmark">
+        <span class="wm-bold">Ingest</span><span class="wm-slash">/</span><span class="wm-light">List</span>
+      </div>
+      <div class="hdr-divider"></div>
+
+      <div class="project-switcher">
+        <button id="project-switcher-btn" class="ps-btn">
+          <span id="ps-current">— Projekt wählen —</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="project-switcher-menu" class="ps-menu" hidden>
+          <div id="project-list" class="ps-list"></div>
+          <div class="ps-divider"></div>
+          <button id="ps-new-project" class="ps-action">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Neues Projekt</span>
+          </button>
+          <button id="ps-project-settings" class="ps-action" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Projekt-Einstellungen</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <div id="view-switcher" class="view-switcher" hidden>
+        <button class="view-btn active" data-view="board" title="Board (1)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg>
+          <span>Board</span>
+          <kbd>1</kbd>
+        </button>
+        <button class="view-btn" data-view="list" title="Liste (2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <span>Liste</span>
+          <kbd>2</kbd>
+        </button>
+        <button class="view-btn" data-view="dashboard" title="Dashboard (3)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          <span>Dashboard</span>
+          <kbd>3</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div id="sync-pill" class="sync-pill" title="Echtzeit-Sync">
+        <span class="sync-dot"></span>
+        <span>Live</span>
+      </div>
+      <button id="btn-notifications" class="icon-btn" title="Benachrichtigungen" hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <button id="btn-theme" class="icon-btn" title="Theme wechseln">
+        <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button id="btn-shortcuts" class="icon-btn" title="Tastenkürzel (?)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+      </button>
+      <button id="btn-role-switch" class="role-chip" title="Rolle wechseln">
+        <span id="role-icon"></span>
+        <span id="role-label"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== TAPE STRIP ==================== -->
+  <div id="tape-strip" class="tape-strip" hidden>
+    <div class="tape-cell">
+      <span class="tape-label">Projekt</span>
+      <span class="tape-val" id="tape-project">—</span>
+    </div>
+    <div class="tape-cell">
+      <span class="tape-label">Zeit</span>
+      <span class="tape-val tape-mono" id="tape-clock">00:00:00</span>
+    </div>
+    <div class="tape-spacer"></div>
+    <div class="tape-cell">
+      <span class="dot dot-waiting"></span>
+      <span class="tape-label">Wartend</span>
+      <span class="tape-val tape-big" id="tape-waiting">0</span>
+    </div>
+    <div class="tape-cell">
+      <span class="rec-dot"></span>
+      <span class="tape-label tape-rec">Übertragung</span>
+      <span class="tape-val tape-big" id="tape-transferring">0</span>
+    </div>
+    <div class="tape-cell">
+      <span class="dot dot-done"></span>
+      <span class="tape-label">Fertig</span>
+      <span class="tape-val tape-big" id="tape-done">0</span>
+    </div>
+    <div class="tape-cell">
+      <span class="tape-label">Footage</span>
+      <span class="tape-val tape-mono" id="tape-footage">—</span>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN ==================== -->
+  <main id="main">
+
+    <!-- ROLE PICKER -->
+    <section id="view-role" class="view" hidden>
+      <div class="role-hero">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="14" rx="2"/>
+            <path d="M2 10h20M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </div>
+        <h1>Wer bist du?</h1>
+        <p>Wähle deine Rolle. Du kannst sie später jederzeit oben rechts wechseln.</p>
+        <div class="role-options">
+          <button class="role-card" data-role="ingest">
+            <div class="role-card-icon" style="background:rgba(91, 141, 239, 0.15); color:var(--accent)">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+            <div class="role-card-title">Ingest Station</div>
+            <div class="role-card-desc">Material registrieren, Status setzen, Crew und Kameras verwalten.</div>
+          </button>
+          <button class="role-card" data-role="cutter">
+            <div class="role-card-icon" style="background:rgba(52, 211, 153, 0.15); color:var(--c-done)">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            </div>
+            <div class="role-card-title">Cutter</div>
+            <div class="role-card-desc">Verfügbares Material live sehen, Pfade kopieren, bei neuem Material benachrichtigt werden.</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- EMPTY STATE -->
+    <section id="view-empty" class="view">
+      <div class="empty-hero">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="14" rx="2"/>
+            <path d="M2 10h20M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </div>
+        <h1>Bereit für die Show</h1>
+        <p>Erstelle ein neues Projekt oder wähle ein bestehendes oben links aus.</p>
+        <button id="btn-create-first" class="btn btn-primary btn-lg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Neues Projekt erstellen
+        </button>
+      </div>
+    </section>
+
+    <!-- BOARD VIEW -->
+    <section id="view-board" class="view" hidden>
+      <div id="quick-add-bar" class="quick-add-bar">
+        <div class="qa-row">
+          <select id="qa-crew" class="qa-input qa-crew">
+            <option value="">Person...</option>
+          </select>
+          <select id="qa-camera" class="qa-input qa-camera">
+            <option value="">Kamera...</option>
+          </select>
+          <input id="qa-desc" class="qa-input qa-desc" type="text" placeholder="Was wurde gefilmt? (z.B. Crowd Main Stage, Foo Fighters Interview)">
+          <button id="qa-submit" class="btn btn-primary qa-submit" title="Registrieren (Enter)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Registrieren</span>
+          </button>
+        </div>
+        <div class="qa-meta">
+          <div class="qa-filters">
+            <input id="board-search" type="text" class="qa-search" placeholder="Suchen..." />
+            <select id="board-day-filter" class="qa-filter">
+              <option value="">Alle Tage</option>
+            </select>
+            <select id="board-crew-filter" class="qa-filter">
+              <option value="">Alle Personen</option>
+            </select>
+          </div>
+          <div class="qa-hint">
+            <kbd>N</kbd> neue Aufnahme · <kbd>/</kbd> suchen · <kbd>?</kbd> shortcuts
+          </div>
+        </div>
+      </div>
+
+      <div id="kanban" class="kanban">
+        <div class="column" data-status="waiting">
+          <div class="column-header">
+            <div class="column-title">
+              <span class="col-dot" style="background:var(--c-waiting)"></span>
+              <span>Wartend</span>
+              <span class="col-count" id="count-waiting">0</span>
+            </div>
+            <span class="col-hint">drag hier</span>
+          </div>
+          <div class="column-body" data-drop="waiting" id="col-waiting"></div>
+        </div>
+        <div class="column" data-status="transferring">
+          <div class="column-header">
+            <div class="column-title">
+              <span class="col-dot pulse" style="background:var(--c-transferring)"></span>
+              <span>Übertragung</span>
+              <span class="col-count" id="count-transferring">0</span>
+            </div>
+            <span class="col-hint">drag hier</span>
+          </div>
+          <div class="column-body" data-drop="transferring" id="col-transferring"></div>
+        </div>
+        <div class="column" data-status="done">
+          <div class="column-header">
+            <div class="column-title">
+              <span class="col-dot" style="background:var(--c-done)"></span>
+              <span>Fertig</span>
+              <span class="col-count" id="count-done">0</span>
+            </div>
+            <span class="col-hint">drag hier</span>
+          </div>
+          <div class="column-body" data-drop="done" id="col-done"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIST VIEW -->
+    <section id="view-list" class="view" hidden>
+      <div class="list-toolbar">
+        <input id="list-search" type="text" class="qa-search" placeholder="Suchen..." />
+        <div class="filter-chips">
+          <button class="chip active" data-filter="all">Alle</button>
+          <button class="chip" data-filter="waiting">Wartend</button>
+          <button class="chip" data-filter="transferring">Übertragung</button>
+          <button class="chip" data-filter="done">Fertig</button>
+        </div>
+        <div class="list-actions">
+          <button id="btn-export-csv" class="btn btn-ghost btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            CSV
+          </button>
+          <button id="btn-export-json" class="btn btn-ghost btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            JSON
+          </button>
+        </div>
+      </div>
+      <div id="list-container" class="list-container"></div>
+    </section>
+
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="view" hidden>
+      <div class="dash-grid">
+        <div class="dash-card dash-card-lg">
+          <div class="dash-card-label">Status-Übersicht</div>
+          <div class="dash-status-bars">
+            <div class="dash-bar-row">
+              <span class="dash-bar-label"><span class="col-dot" style="background:var(--c-waiting)"></span>Wartend</span>
+              <div class="dash-bar"><div class="dash-bar-fill" id="bar-waiting" style="background:var(--c-waiting)"></div></div>
+              <span class="dash-bar-value" id="dash-waiting">0</span>
+            </div>
+            <div class="dash-bar-row">
+              <span class="dash-bar-label"><span class="col-dot pulse" style="background:var(--c-transferring)"></span>Übertragung</span>
+              <div class="dash-bar"><div class="dash-bar-fill" id="bar-transferring" style="background:var(--c-transferring)"></div></div>
+              <span class="dash-bar-value" id="dash-transferring">0</span>
+            </div>
+            <div class="dash-bar-row">
+              <span class="dash-bar-label"><span class="col-dot" style="background:var(--c-done)"></span>Fertig</span>
+              <div class="dash-bar"><div class="dash-bar-fill" id="bar-done" style="background:var(--c-done)"></div></div>
+              <span class="dash-bar-value" id="dash-done">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-label">Gesamt</div>
+          <div class="dash-big" id="dash-total">0</div>
+          <div class="dash-sub">Aufnahmen registriert</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-label">Footage gesamt</div>
+          <div class="dash-big" id="dash-footage">—</div>
+          <div class="dash-sub">Aufgezeichnete Minuten</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-label">Letzte Aufnahme</div>
+          <div class="dash-big" id="dash-last" style="font-size:18px">—</div>
+          <div class="dash-sub" id="dash-last-sub">—</div>
+        </div>
+        <div class="dash-card dash-card-wide">
+          <div class="dash-card-label">Pro Tag</div>
+          <div id="dash-by-day" class="dash-day-list"></div>
+        </div>
+        <div class="dash-card dash-card-wide">
+          <div class="dash-card-label">Crew-Aktivität</div>
+          <div id="dash-by-crew" class="dash-day-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUTTER VIEW -->
+    <section id="view-cutter" class="view" hidden>
+      <div class="cutter-head">
+        <div>
+          <h1 class="cutter-title">Verfügbares Material</h1>
+          <p class="cutter-subtitle" id="cutter-project-meta">—</p>
+        </div>
+        <div class="cutter-stats">
+          <div class="cutter-stat">
+            <div class="cutter-stat-value" id="cutter-count-done">0</div>
+            <div class="cutter-stat-label">Verfügbar</div>
+          </div>
+          <div class="cutter-stat">
+            <div class="cutter-stat-value" id="cutter-count-transferring">0</div>
+            <div class="cutter-stat-label">Wird gerade übertragen</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cutter-toolbar">
+        <input id="cutter-search" type="text" class="qa-search" placeholder="Suchen... (Crew, Kamera, Beschreibung, Pfad)" style="width:340px" />
+        <div class="filter-chips">
+          <button class="chip active" data-cutter-filter="ready">Nur verfügbar</button>
+          <button class="chip" data-cutter-filter="all">Inkl. laufende Übertragungen</button>
+        </div>
+        <div class="cutter-toolbar-right">
+          <select id="cutter-day-filter" class="qa-filter">
+            <option value="">Alle Tage</option>
+          </select>
+          <select id="cutter-crew-filter" class="qa-filter">
+            <option value="">Alle Personen</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="cutter-banner" class="cutter-banner" hidden>
+        <div class="cutter-banner-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="cutter-banner-text">
+          <strong>Benachrichtigungen aktivieren?</strong>
+          <span>Du wirst informiert sobald neues Material verfügbar ist — auch wenn der Tab im Hintergrund läuft.</span>
+        </div>
+        <button id="cutter-enable-notifications" class="btn btn-primary btn-sm">Aktivieren</button>
+        <button id="cutter-dismiss-banner" class="icon-btn" title="Nicht jetzt">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div id="cutter-list" class="cutter-list"></div>
+    </section>
+
+    <!-- SETTINGS VIEW -->
+    <section id="view-settings" class="view" hidden>
+      <div class="settings-head">
+        <button id="settings-back" class="btn btn-ghost btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Zurück
+        </button>
+        <h2>Projekt-Einstellungen</h2>
+      </div>
+
+      <div class="settings-grid">
+        <div class="settings-card settings-card-wide">
+          <h3>Projekt-Details</h3>
+          <form id="form-project-edit">
+            <div class="form-grid">
+              <div class="form-field">
+                <label>Name</label>
+                <input type="text" id="proj-name" required>
+              </div>
+              <div class="form-field">
+                <label>Ort</label>
+                <input type="text" id="proj-location" placeholder="z.B. Nürburgring">
+              </div>
+              <div class="form-field">
+                <label>Von</label>
+                <input type="date" id="proj-date-start">
+              </div>
+              <div class="form-field">
+                <label>Bis</label>
+                <input type="date" id="proj-date-end">
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Notizen</label>
+              <textarea id="proj-notes" rows="2"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Speichern</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="settings-card settings-card-wide">
+          <h3>Kamera-Crew &amp; ihre Kameras</h3>
+          <form id="form-add-crew" class="row-form">
+            <input type="text" id="crew-name" placeholder="Name der Kameraperson" required>
+            <input type="text" id="crew-role" placeholder="Rolle" value="Kamera">
+            <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Person hinzufügen
+            </button>
+          </form>
+          <div id="crew-blocks" class="crew-blocks"></div>
+          <div id="orphan-cams-wrap" class="orphan-cams-wrap" hidden>
+            <div class="orphan-cams-label">Unzugeordnete Kameras</div>
+            <div id="orphan-cams" class="orphan-cams"></div>
+          </div>
+        </div>
+
+        <div class="settings-card settings-card-wide">
+          <h3>Ordner-Schema für Übertragung</h3>
+          <p class="muted">Template für den Ordnerpfad den du beim Übertragen verwendest. Verfügbare Variablen:
+            <code>{project}</code> <code title="2026-05-21">{date}</code> <code title="20260521 (ohne Bindestriche)">{ymd}</code> <code>{day}</code> <code>{crew}</code>
+            <code>{camera}</code>
+            <code title="Fortlaufende Nummer pro Person+Kamera+Tag (001, 002, ...)">{nr}</code>
+            <br><span style="font-size:11px">
+              <code>{nr}</code> zählt automatisch pro Person und Tag hoch — die erste Karte einer Person an Tag 1 ist <code>001</code>, die zweite <code>002</code>, etc.<br>
+              <code>{ymd}</code> ist das Datum kompakt als <code>20260521</code>, <code>{date}</code> als <code>2026-05-21</code>.<br>
+              Mit <code>/</code> kannst du Unterordner anlegen. Empfohlen: <code>{day}/{ymd}_{crew}_{camera}_{nr}</code> erzeugt z.B. <code>Day1/20260521_LisaSchmidt_CamA_001</code>.
+            </span>
+          </p>
+          <form id="form-folder-template">
+            <div class="form-field">
+              <label>Template</label>
+              <input type="text" id="folder-template" placeholder="{day}/{ymd}_{crew}_{camera}_{nr}">
+            </div>
+            <div class="folder-preview">
+              <span class="folder-preview-label">Beispiel</span>
+              <code id="folder-preview-output">—</code>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-sm">Schema speichern</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <h3>Storage-Ziele</h3>
+          <form id="form-add-storage" class="row-form">
+            <input type="text" id="storage-name" placeholder="z.B. RAID-01 / Drive E:" required>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </form>
+          <ul id="storage-list" class="entity-list"></ul>
+        </div>
+
+        <div class="settings-card danger-zone">
+          <h3>Gefahrenzone</h3>
+          <p class="muted">Archiviert das Projekt. Daten bleiben in der db.json erhalten.</p>
+          <button id="btn-archive-project" class="btn btn-danger btn-sm">Projekt archivieren</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== SIDE PANEL ==================== -->
+  <aside id="side-panel" class="side-panel" hidden>
+    <div class="side-panel-bg" data-close-panel></div>
+    <div class="side-panel-content">
+      <header class="sp-header">
+        <div class="sp-header-left">
+          <div id="sp-status-badge" class="status-badge"></div>
+          <div id="sp-id" class="sp-id"></div>
+          <div id="sp-sequence" class="sp-sequence" hidden></div>
+        </div>
+        <button class="icon-btn" data-close-panel>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </header>
+
+      <div class="sp-body">
+        <div class="sp-actions">
+          <button class="btn btn-status-action" data-status="waiting">Wartend</button>
+          <button class="btn btn-status-action" data-status="transferring">Übertragung</button>
+          <button class="btn btn-status-action" data-status="done">Fertig</button>
+        </div>
+
+        <div class="sp-folder-box">
+          <div class="sp-folder-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>Ordner-Name für OffShoot</span>
+          </div>
+          <div class="sp-folder-row">
+            <code id="sp-folder-leaf" class="sp-folder-name">—</code>
+            <button id="sp-folder-copy-leaf" class="cutter-copy sp-copy-primary" type="button" title="In Zwischenablage kopieren">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Kopieren
+            </button>
+          </div>
+          <div id="sp-folder-parent-row" class="sp-folder-parent" hidden>
+            <span class="sp-folder-parent-label">In OffShoot als Ziel:</span>
+            <code id="sp-folder-parent" class="sp-folder-parent-path">—</code>
+          </div>
+          <div id="sp-folder-full-row" class="sp-folder-full">
+            <span class="sp-folder-full-label">Voller Pfad:</span>
+            <code id="sp-folder-full" class="sp-folder-full-path">—</code>
+            <button id="sp-folder-copy-full" class="sp-copy-link" type="button" title="Vollen Pfad kopieren">kopieren</button>
+          </div>
+        </div>
+
+        <div class="sp-meta-row">
+          <span class="sp-meta-label">Registriert</span>
+          <span id="sp-registered" class="sp-meta-value">—</span>
+        </div>
+
+        <form id="form-edit-ingest" class="sp-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label>Kamera-Person</label>
+              <select id="sp-crew"></select>
+            </div>
+            <div class="form-field">
+              <label>Kamera</label>
+              <select id="sp-camera"></select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Tag</label>
+            <input type="text" id="sp-day" placeholder="z.B. Day 1">
+          </div>
+          <div class="form-field">
+            <label>Beschreibung</label>
+            <input type="text" id="sp-desc" placeholder="Was wurde gefilmt?">
+          </div>
+          <div class="form-field">
+            <label>Storage</label>
+            <input type="text" id="sp-storage" list="storage-datalist">
+            <datalist id="storage-datalist"></datalist>
+          </div>
+          <div class="form-field">
+            <label>Zielpfad</label>
+            <input type="text" id="sp-path" placeholder="z.B. E:\RAR2026\CamA\Day1">
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Clips</label>
+              <input type="number" id="sp-clips" min="0">
+            </div>
+            <div class="form-field">
+              <label>Footage (min)</label>
+              <input type="number" id="sp-duration" min="0">
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Notizen</label>
+            <textarea id="sp-notes" rows="2"></textarea>
+          </div>
+
+          <input type="hidden" id="sp-id-input">
+          <div class="sp-form-actions">
+            <button type="button" id="btn-delete-ingest" class="btn btn-danger btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Löschen
+            </button>
+            <button type="submit" class="btn btn-primary">Speichern</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- New Project Modal -->
+  <div id="modal-new-project" class="modal-wrap" hidden>
+    <div class="modal-bg" data-close-modal></div>
+    <div class="modal">
+      <header class="modal-header">
+        <h2>Neues Projekt</h2>
+        <button class="icon-btn" data-close-modal>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </header>
+      <form id="form-new-project">
+        <div class="form-field">
+          <label>Projekt-Name *</label>
+          <input type="text" id="new-proj-name" required placeholder="z.B. Rock Am Ring 2026" autofocus>
+        </div>
+        <div class="form-field">
+          <label>Ort</label>
+          <input type="text" id="new-proj-location" placeholder="z.B. Nürburgring">
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Von</label>
+            <input type="date" id="new-proj-start">
+          </div>
+          <div class="form-field">
+            <label>Bis</label>
+            <input type="date" id="new-proj-end">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" data-close-modal>Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Erstellen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Shortcuts Modal -->
+  <div id="modal-shortcuts" class="modal-wrap" hidden>
+    <div class="modal-bg" data-close-modal></div>
+    <div class="modal">
+      <header class="modal-header">
+        <h2>Tastenkürzel</h2>
+        <button class="icon-btn" data-close-modal>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </header>
+      <div class="shortcuts-list">
+        <div class="sc-row"><kbd>N</kbd><span>Neue Aufnahme registrieren</span></div>
+        <div class="sc-row"><kbd>/</kbd><span>Suche fokussieren</span></div>
+        <div class="sc-row"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>Board / Liste / Dashboard</span></div>
+        <div class="sc-row"><kbd>Esc</kbd><span>Panel/Modal schließen</span></div>
+        <div class="sc-row"><kbd>?</kbd><span>Diese Übersicht</span></div>
+        <div class="sc-divider"></div>
+        <div class="sc-hint">In Board-View: Karten per Drag & Drop zwischen Spalten ziehen.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toasts" class="toasts"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

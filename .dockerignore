@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+*.log
+
+# don't bake the local db into the image — it lives in the mounted volume
+data/
+
+# dev-only files
+README.md
+*.md
+.env
+.env.*
