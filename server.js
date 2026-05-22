@@ -1,11 +1,59 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const db = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// --- Auth (single shared password, stored in browser cookie) ---
+
+const PASSWORD = process.env.INGEST_PASSWORD || 'RaR2026';
+const AUTH_TOKEN = crypto.createHash('sha256').update(PASSWORD).digest('hex');
+const COOKIE_NAME = 'ingest_auth';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+
+function parseCookies(header) {
+  const out = {};
+  if (!header) return out;
+  for (const part of header.split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+function isAuthenticated(req) {
+  return parseCookies(req.headers.cookie)[COOKIE_NAME] === AUTH_TOKEN;
+}
+
 app.use(express.json());
+
+// Gate everything except the login page + the login API behind a cookie check.
+app.use((req, res, next) => {
+  if (req.path === '/login' && req.method === 'GET') return next();
+  if (req.path === '/api/login' && req.method === 'POST') return next();
+  if (req.path === '/favicon.ico') return next();
+  if (isAuthenticated(req)) return next();
+  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
+  return res.redirect('/login');
+});
+
+app.get('/login', (req, res) => {
+  if (isAuthenticated(req)) return res.redirect('/');
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.post('/api/login', (req, res) => {
+  const { password } = req.body || {};
+  if (password !== PASSWORD) {
+    return res.status(401).json({ error: 'Falsches Passwort' });
+  }
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${AUTH_TOKEN}; HttpOnly; SameSite=Lax; Max-Age=${COOKIE_MAX_AGE}; Path=/`);
+  res.json({ ok: true });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- SSE for real-time sync ---

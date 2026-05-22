@@ -104,6 +104,10 @@ async function api(path, options = {}) {
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
+  if (res.status === 401) {
+    location.href = '/login';
+    throw new Error('Unauthorized');
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`${res.status}: ${text}`);
