@@ -1270,6 +1270,7 @@ function renderCutterRow(i) {
       ${avatar}
       <div class="cutter-info">
         <div class="cutter-main-line">
+          ${isNew ? '<span class="cutter-new-pill">Neu</span>' : ''}
           <span class="cutter-crew">${esc(i.crew_name || 'Unbekannt')}</span>
           ${i.description ? `<span class="cutter-desc">— ${esc(i.description)}</span>` : ''}
         </div>
