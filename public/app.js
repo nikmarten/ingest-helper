@@ -1312,7 +1312,7 @@ async function requestNotificationPermission() {
     // Test notification
     new Notification('Ingest List', {
       body: 'Du erhältst jetzt Benachrichtigungen wenn neues Material verfügbar ist.',
-      icon: '/favicon.ico',
+      icon: '/favicon.svg',
       silent: false,
     });
   }
@@ -1349,7 +1349,7 @@ function notifyCutter(ingest) {
   try {
     const n = new Notification('Neues Material verfügbar', {
       body: `${ingest.crew_name || '?'}${ingest.description ? ' — ' + ingest.description : ''}\n${ingest.path || ''}`,
-      icon: '/favicon.ico',
+      icon: '/favicon.svg',
       tag: `ingest-${ingest.id}`,
       requireInteraction: false,
     });
