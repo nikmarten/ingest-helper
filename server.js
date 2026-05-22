@@ -34,11 +34,14 @@ app.use(express.json());
 app.use((req, res, next) => {
   if (req.path === '/login' && req.method === 'GET') return next();
   if (req.path === '/api/login' && req.method === 'POST') return next();
+  if (req.path === '/healthz') return next();
   if (req.path === '/favicon.ico') return next();
   if (isAuthenticated(req)) return next();
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
   return res.redirect('/login');
 });
+
+app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 app.get('/login', (req, res) => {
   if (isAuthenticated(req)) return res.redirect('/');
