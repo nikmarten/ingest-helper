@@ -35,7 +35,7 @@ app.use((req, res, next) => {
   if (req.path === '/login' && req.method === 'GET') return next();
   if (req.path === '/api/login' && req.method === 'POST') return next();
   if (req.path === '/healthz') return next();
-  if (req.path === '/favicon.ico') return next();
+  if (req.path === '/favicon.ico' || req.path === '/favicon.svg') return next();
   if (isAuthenticated(req)) return next();
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
   return res.redirect('/login');
