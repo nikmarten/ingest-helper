@@ -586,16 +586,34 @@ async function loadCameras() {
 }
 
 function populateCameraSelects() {
-  for (const sel of [$('#qa-camera'), $('#sp-camera')]) {
-    const val = sel.value;
-    sel.innerHTML = `<option value="">${sel.id === 'qa-camera' ? 'Kamera...' : '— wählen —'}</option>`;
-    for (const c of state.cameras) {
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      opt.textContent = c.short_code ? `${c.name} · ${c.short_code}` : c.name;
-      sel.appendChild(opt);
-    }
-    if (val) sel.value = val;
+  refillCameraSelect($('#qa-camera'), $('#qa-crew'), 'Kamera...');
+  refillCameraSelect($('#sp-camera'), $('#sp-crew'), '— wählen —');
+}
+
+// Re-fill a single camera <select> with cameras owned by the crew currently
+// selected in crewSel. If no crew is selected, show all cameras (initial state).
+// Preserves the currently-selected camera even if it doesn't match the crew —
+// important when editing an existing ingest whose camera was assigned earlier.
+function refillCameraSelect(cameraSel, crewSel, placeholder) {
+  if (!cameraSel) return;
+  const val = cameraSel.value;
+  const crewId = crewSel && crewSel.value ? Number(crewSel.value) : null;
+  let cams = crewId
+    ? state.cameras.filter(c => c.owner_crew_id === crewId)
+    : state.cameras;
+  if (val && !cams.some(c => String(c.id) === String(val))) {
+    const current = state.cameras.find(c => String(c.id) === String(val));
+    if (current) cams = [current, ...cams];
+  }
+  cameraSel.innerHTML = `<option value="">${placeholder}</option>`;
+  for (const c of cams) {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.short_code ? `${c.name} · ${c.short_code}` : c.name;
+    cameraSel.appendChild(opt);
+  }
+  if (val && cams.some(c => String(c.id) === String(val))) {
+    cameraSel.value = val;
   }
 }
 
@@ -1185,15 +1203,29 @@ function renderCutterView() {
     });
   });
 
-  // Mark currently visible done IDs as seen
-  let changed = false;
-  for (const i of items) {
-    if (i.status === 'done' && !state.knownDoneIds.has(i.id)) {
-      state.knownDoneIds.add(i.id);
-      changed = true;
-    }
+  // Wire per-row "Gesehen" buttons
+  list.querySelectorAll('.cutter-mark-seen').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = Number(btn.dataset.id);
+      if (!id) return;
+      state.knownDoneIds.add(id);
+      persistKnownDoneIds();
+      renderCutterView();
+    });
+  });
+
+  // Unread counter + "Alle als gesehen" button visibility
+  const unreadCount = state.ingests.filter(i => i.status === 'done' && !state.knownDoneIds.has(i.id)).length;
+  const newStat = $('#cutter-stat-new');
+  $('#cutter-count-new').textContent = unreadCount;
+  if (unreadCount > 0) newStat.removeAttribute('hidden');
+  else newStat.setAttribute('hidden', '');
+  const markAllBtn = $('#cutter-mark-all-seen');
+  if (markAllBtn) {
+    if (unreadCount > 0) markAllBtn.removeAttribute('hidden');
+    else markAllBtn.setAttribute('hidden', '');
   }
-  if (changed) persistKnownDoneIds();
 }
 
 function renderCutterRow(i) {
@@ -1215,6 +1247,13 @@ function renderCutterRow(i) {
   const whenStr = i.status === 'done' && i.transfer_completed_at
     ? `<span class="cutter-when"><strong>${fmtTime(i.transfer_completed_at)}</strong> fertig</span>`
     : `<span class="cutter-when">seit ${fmtTime(i.transfer_started_at || i.created_at)}</span>`;
+
+  const seenBtn = isNew
+    ? `<button class="cutter-mark-seen" data-id="${i.id}" title="Als gesehen markieren">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+         Gesehen
+       </button>`
+    : '';
 
   const pathRow = i.path
     ? `<div class="cutter-path-row">
@@ -1240,6 +1279,7 @@ function renderCutterRow(i) {
       <div class="cutter-meta">
         ${status}
         ${whenStr}
+        ${seenBtn}
       </div>
     </div>
   `;
@@ -1355,6 +1395,7 @@ function openSidePanel(id) {
   $('#sp-id-input').value = ingest.id;
   $('#sp-crew').value = ingest.crew_id || '';
   $('#sp-camera').value = ingest.camera_id || '';
+  refillCameraSelect($('#sp-camera'), $('#sp-crew'), '— wählen —');
   $('#sp-day').value = ingest.day_label || '';
   $('#sp-desc').value = ingest.description || '';
   $('#sp-storage').value = ingest.storage_destination || '';
@@ -1426,6 +1467,16 @@ function wireEvents() {
   $('#cutter-search')?.addEventListener('input', () => renderCutterView());
   $('#cutter-day-filter')?.addEventListener('change', () => renderCutterView());
   $('#cutter-crew-filter')?.addEventListener('change', () => renderCutterView());
+
+  // Mark all currently-done items as seen (project-scoped).
+  $('#cutter-mark-all-seen')?.addEventListener('click', () => {
+    for (const i of state.ingests) {
+      if (i.status === 'done') state.knownDoneIds.add(i.id);
+    }
+    persistKnownDoneIds();
+    renderCutterView();
+    toast('Alle als gesehen markiert');
+  });
 
   // Notifications
   $('#cutter-enable-notifications').addEventListener('click', async () => {
@@ -1529,15 +1580,22 @@ function wireEvents() {
   });
   $('#folder-template').addEventListener('input', updateFolderPreview);
 
-  // Quick-add: smart camera default when crew is picked
+  // Quick-add: when crew is picked, restrict camera dropdown to that crew's cameras
+  // and auto-select the first owned camera as a convenience.
   $('#qa-crew').addEventListener('change', () => {
+    refillCameraSelect($('#qa-camera'), $('#qa-crew'), 'Kamera...');
     const crewId = Number($('#qa-crew').value);
     if (!crewId) return;
-    if ($('#qa-camera').value) return; // already picked
+    if ($('#qa-camera').value) return;
     const ownedCameras = state.cameras.filter(c => c.owner_crew_id === crewId);
     if (ownedCameras.length >= 1) {
       $('#qa-camera').value = ownedCameras[0].id;
     }
+  });
+
+  // Side panel: same crew→camera filter when editing an ingest.
+  $('#sp-crew').addEventListener('change', () => {
+    refillCameraSelect($('#sp-camera'), $('#sp-crew'), '— wählen —');
   });
 
   // Side panel: copy buttons (leaf for OffShoot, full path for reference)

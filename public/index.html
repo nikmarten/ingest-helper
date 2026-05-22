@@ -320,6 +320,10 @@
           <p class="cutter-subtitle" id="cutter-project-meta">—</p>
         </div>
         <div class="cutter-stats">
+          <div class="cutter-stat cutter-stat-new" id="cutter-stat-new" hidden>
+            <div class="cutter-stat-value" id="cutter-count-new">0</div>
+            <div class="cutter-stat-label">Neu für dich</div>
+          </div>
           <div class="cutter-stat">
             <div class="cutter-stat-value" id="cutter-count-done">0</div>
             <div class="cutter-stat-label">Verfügbar</div>
@@ -338,6 +342,10 @@
           <button class="chip" data-cutter-filter="all">Inkl. laufende Übertragungen</button>
         </div>
         <div class="cutter-toolbar-right">
+          <button id="cutter-mark-all-seen" class="btn btn-ghost btn-sm" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Alle als gesehen
+          </button>
           <select id="cutter-day-filter" class="qa-filter">
             <option value="">Alle Tage</option>
           </select>

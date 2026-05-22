@@ -1419,6 +1419,7 @@ select.qa-input { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg
   display: flex; align-items: center; gap: 8px; justify-content: flex-end;
 }
 .cutter-stat.cutter-stat-rec .cutter-stat-value { color: var(--rec); }
+.cutter-stat.cutter-stat-new .cutter-stat-value { color: var(--c-done); }
 .cutter-stat-label { font-size: 11.5px; color: var(--text-3); margin-top: 6px; }
 
 .cutter-toolbar {
@@ -1530,6 +1531,27 @@ select.qa-input { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg
 .cutter-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 11.5px; }
 .cutter-when { font-family: var(--font-mono); color: var(--text-3); font-variant-numeric: tabular-nums; }
 .cutter-when strong { color: var(--text); font-weight: 500; }
+
+.cutter-mark-seen {
+  margin-top: 4px;
+  background-color: rgba(109, 194, 139, 0.08);
+  border: 1px solid rgba(109, 194, 139, 0.3);
+  color: var(--c-done);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: var(--font);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: var(--t-fast);
+}
+.cutter-mark-seen:hover {
+  background-color: rgba(109, 194, 139, 0.16);
+  border-color: rgba(109, 194, 139, 0.5);
+}
 
 .cutter-empty {
   text-align: center;
