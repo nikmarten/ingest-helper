@@ -405,6 +405,17 @@ input:focus, select:focus, textarea:focus {
 input::placeholder, textarea::placeholder { color: var(--text-4); }
 
 select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2376767e' d='M0 0h10L5 6z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+/* Native dropdown popup options — without explicit colors Chromium renders them
+   dark-on-dark in dark mode. Set concrete surface + text from the theme tokens. */
+select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+select option:checked,
+select option:hover {
+  background-color: var(--surface-3);
+  color: var(--text);
+}
 textarea { resize: vertical; min-height: 60px; }
 
 .form-field { margin-bottom: 12px; }
