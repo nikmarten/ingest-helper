@@ -1686,6 +1686,8 @@ function wireEvents() {
   // Export
   $('#btn-export-csv').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/csv`));
   $('#btn-export-json').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/json`));
+  $('#btn-export-html').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/html`));
+  $('#btn-export-pdf').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/html?print=1`));
 
   // Side panel
   $$('[data-close-panel]').forEach(el => el.addEventListener('click', closeSidePanel));

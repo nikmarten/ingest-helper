@@ -194,6 +194,227 @@ app.get('/api/projects/:projectId/export/json', (req, res) => {
   res.json({ project, crew, cameras, ingests });
 });
 
+// --- PDF / HTML report ---
+
+const STATUS_LABELS = { waiting: 'Wartend', transferring: 'Wird übertragen', done: 'Fertig', error: 'Fehler' };
+
+function escHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+function fmtDurationSec(sec) {
+  if (sec == null || isNaN(sec)) return '–';
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  if (m === 0) return `${s}s`;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+function transferSeconds(row) {
+  if (!row.transfer_started_at || !row.transfer_completed_at) return null;
+  const s = new Date(row.transfer_started_at.replace(' ', 'T'));
+  const e = new Date(row.transfer_completed_at.replace(' ', 'T'));
+  return Math.round((e - s) / 1000);
+}
+
+// Order day labels: Pre-Show first, then "Day N" ascending, unknown last.
+function dayRank(label) {
+  if (!label) return Number.MAX_SAFE_INTEGER;
+  if (label === 'Pre-Show') return -1;
+  const m = /Day\s+(\d+)/i.exec(label);
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER - 1;
+}
+
+function buildReportHtml(project, ingests, stats, { print = false } = {}) {
+  const projectName = project?.name || 'Projekt';
+  const generatedAt = new Date().toLocaleString('de-DE', { dateStyle: 'long', timeStyle: 'short' });
+
+  const metaBits = [];
+  if (project?.location) metaBits.push(escHtml(project.location));
+  if (project?.date_start) {
+    metaBits.push(escHtml(project.date_end && project.date_end !== project.date_start
+      ? `${project.date_start} – ${project.date_end}`
+      : project.date_start));
+  }
+
+  // Group ingests by day_label.
+  const groups = new Map();
+  for (const i of ingests) {
+    const key = i.day_label || 'Ohne Tag';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  }
+  const orderedDays = [...groups.keys()].sort((a, b) => dayRank(a) - dayRank(b));
+
+  const summaryCards = [
+    { label: 'Übertragungen', value: stats.total, cls: '' },
+    { label: 'Wartend', value: stats.waiting, cls: 'waiting' },
+    { label: 'Übertragung', value: stats.transferring, cls: 'transferring' },
+    { label: 'Fertig', value: stats.done, cls: 'done' },
+    { label: 'Fehler', value: stats.errors, cls: 'error' },
+    { label: 'Footage', value: stats.total_footage_minutes ? `${stats.total_footage_minutes} min` : '–', cls: '' },
+    { label: 'Clips', value: stats.total_clips || 0, cls: '' },
+    { label: 'Ø Transfer', value: stats.avg_transfer_seconds ? fmtDurationSec(stats.avg_transfer_seconds) : '–', cls: '' },
+  ];
+
+  const summaryHtml = summaryCards.map(c => `
+    <div class="card ${c.cls}">
+      <div class="card-val">${escHtml(c.value)}</div>
+      <div class="card-lbl">${escHtml(c.label)}</div>
+    </div>`).join('');
+
+  const daySections = orderedDays.map(day => {
+    const rows = groups.get(day);
+    const dayClips = rows.reduce((m, i) => m + (i.clip_count || 0), 0);
+    const dayMinutes = rows.reduce((m, i) => m + (i.duration_minutes || 0), 0);
+
+    const tableRows = rows.map(i => {
+      const cam = [i.camera_name, i.camera_model].filter(Boolean).join(' · ');
+      const dur = fmtDurationSec(transferSeconds(i));
+      const subBits = [];
+      if (i.path) subBits.push(`<span class="sub-k">Ordner</span> ${escHtml(i.path)}`);
+      if (i.storage_destination) subBits.push(`<span class="sub-k">Storage</span> ${escHtml(i.storage_destination)}`);
+      if (i.card_label) subBits.push(`<span class="sub-k">Karte</span> ${escHtml(i.card_label)}`);
+      if (i.notes) subBits.push(`<span class="sub-k">Notiz</span> ${escHtml(i.notes)}`);
+      const subLine = subBits.length
+        ? `<tr class="sub"><td></td><td colspan="7">${subBits.join('<span class="sep">·</span>')}</td></tr>`
+        : '';
+      const crewDot = i.crew_color
+        ? `<span class="dot" style="background:${escHtml(i.crew_color)}"></span>`
+        : '';
+      return `
+      <tr>
+        <td class="nr">${i.sequence_number != null ? String(i.sequence_number).padStart(3, '0') : '–'}</td>
+        <td>${crewDot}${escHtml(i.crew_name || '–')}</td>
+        <td>${escHtml(cam || '–')}</td>
+        <td class="desc">${escHtml(i.description || '–')}</td>
+        <td>${escHtml(i.stage || '–')}</td>
+        <td class="num">${i.clip_count != null ? i.clip_count : '–'}</td>
+        <td class="num">${i.duration_minutes != null ? i.duration_minutes + ' min' : '–'}</td>
+        <td><span class="badge ${i.status}">${escHtml(STATUS_LABELS[i.status] || i.status)}</span><span class="dur">${dur}</span></td>
+      </tr>${subLine}`;
+    }).join('');
+
+    return `
+    <section class="day">
+      <div class="day-head">
+        <h2>${escHtml(day)}</h2>
+        <div class="day-sub">${rows.length} Übertragung${rows.length === 1 ? '' : 'en'}${dayClips ? ` · ${dayClips} Clips` : ''}${dayMinutes ? ` · ${dayMinutes} min` : ''}</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="nr">Nr</th><th>Kamera-Person</th><th>Kamera</th><th>Beschreibung</th>
+            <th>Bühne</th><th class="num">Clips</th><th class="num">Footage</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </section>`;
+  }).join('');
+
+  const emptyHtml = `<p class="empty">Noch keine Übertragungen in diesem Projekt.</p>`;
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Ingest-Report — ${escHtml(projectName)}</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1d1d1f; background: #f5f5f7; line-height: 1.4; font-size: 13px;
+  }
+  .page { max-width: 1000px; margin: 0 auto; padding: 32px; }
+  header.report { display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 2px solid #1d1d1f; padding-bottom: 16px; margin-bottom: 20px; }
+  .brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #76767e; margin-bottom: 6px; }
+  h1 { font-size: 26px; margin: 0; }
+  .meta { color: #515154; font-size: 13px; margin-top: 4px; }
+  .gen { text-align: right; color: #76767e; font-size: 11px; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+  .card { border: 1px solid #e5e5e7; border-radius: 10px; padding: 12px 14px; background: #fff; }
+  .card-val { font-size: 22px; font-weight: 600; }
+  .card-lbl { font-size: 11px; color: #76767e; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+  .card.waiting .card-val { color: #b88a30; }
+  .card.transferring .card-val { color: #c97050; }
+  .card.done .card-val { color: #2f8a52; }
+  .card.error .card-val { color: #d11; }
+  section.day { margin-bottom: 22px; page-break-inside: auto; }
+  .day-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
+    border-bottom: 1px solid #d4d4d8; padding-bottom: 4px; }
+  .day-head h2 { font-size: 16px; margin: 0; }
+  .day-sub { color: #76767e; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
+    color: #76767e; padding: 6px 8px; border-bottom: 1px solid #e5e5e7; }
+  tbody td { padding: 7px 8px; border-bottom: 1px solid #ececef; vertical-align: top; }
+  tbody tr { page-break-inside: avoid; }
+  td.nr, th.nr { width: 42px; font-variant-numeric: tabular-nums; color: #76767e; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.desc { font-weight: 500; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.waiting { background: #f7eed4; color: #8a6713; }
+  .badge.transferring { background: #f7e2d6; color: #a3502c; }
+  .badge.done { background: #d8f0e1; color: #1f6b3c; }
+  .badge.error { background: #fbdad7; color: #b01; }
+  .dur { color: #76767e; font-size: 11px; margin-left: 8px; font-variant-numeric: tabular-nums; }
+  tr.sub td { border-bottom: 1px solid #ececef; padding-top: 0; color: #76767e; font-size: 11px; }
+  tr.sub .sub-k { text-transform: uppercase; letter-spacing: .04em; font-size: 9px; color: #aeaeb4; margin-right: 3px; }
+  tr.sub .sep { margin: 0 8px; color: #d4d4d8; }
+  .empty { color: #76767e; padding: 40px 0; text-align: center; }
+  footer.report { margin-top: 28px; border-top: 1px solid #e5e5e7; padding-top: 10px;
+    color: #aeaeb4; font-size: 10px; display: flex; justify-content: space-between; }
+  @media print {
+    body { background: #fff; font-size: 11px; }
+    .page { max-width: none; padding: 0; }
+    .card { break-inside: avoid; }
+    @page { margin: 14mm; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header class="report">
+      <div>
+        <div class="brand">Ingest List · Report</div>
+        <h1>${escHtml(projectName)}</h1>
+        ${metaBits.length ? `<div class="meta">${metaBits.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+      </div>
+      <div class="gen">Erstellt<br>${escHtml(generatedAt)}</div>
+    </header>
+    <div class="summary">${summaryHtml}</div>
+    ${ingests.length ? daySections : emptyHtml}
+    <footer class="report">
+      <span>Ingest List</span>
+      <span>${stats.total} Übertragung${stats.total === 1 ? '' : 'en'} · ${escHtml(projectName)}</span>
+    </footer>
+  </div>
+  ${print ? '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});</script>' : ''}
+</body>
+</html>`;
+}
+
+app.get('/api/projects/:projectId/export/html', (req, res) => {
+  const projectId = Number(req.params.projectId);
+  const project = db.getProject(projectId);
+  const ingests = db.getIngests(projectId);
+  const stats = db.getStats(projectId);
+  const print = req.query.print === '1';
+  const html = buildReportHtml(project, ingests, stats, { print });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  if (req.query.download === '1') {
+    const filename = `ingest_${(project?.name || 'export').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.html`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  }
+  res.send(html);
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
