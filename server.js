@@ -154,7 +154,7 @@ app.get('/api/projects/:projectId/export/csv', (req, res) => {
   const project = db.getProject(projectId);
   const ingests = db.getIngests(projectId);
   const statusMap = { waiting: 'Wartend', transferring: 'Wird übertragen', done: 'Fertig', error: 'Fehler' };
-  const headers = ['Nr', 'Tag', 'Erstellt', 'Kamera-Person', 'Kamera', 'Modell', 'Bühne', 'Karte', 'Beschreibung', 'Pfad', 'Storage', 'Clips', 'Footage (min)', 'Status', 'Notizen', 'Transfer Start', 'Transfer Ende', 'Transfer Dauer (s)'];
+  const headers = ['Nr', 'Tag', 'Erstellt', 'Kamera-Person', 'Kamera', 'Modell', 'Beschreibung', 'Pfad', 'Storage', 'Status', 'Notizen', 'Transfer Start', 'Transfer Ende', 'Transfer Dauer (s)'];
   const csvRows = [headers.join(';')];
 
   for (const row of ingests) {
@@ -167,10 +167,9 @@ app.get('/api/projects/:projectId/export/csv', (req, res) => {
     csvRows.push([
       row.id, row.day_label || '', row.created_at,
       row.crew_name || '', row.camera_name || '', row.camera_model || '',
-      row.stage || '', row.card_label || '',
       `"${(row.description || '').replace(/"/g, '""')}"`,
       `"${(row.path || '').replace(/"/g, '""')}"`,
-      row.storage_destination || '', row.clip_count || '', row.duration_minutes || '',
+      row.storage_destination || '',
       statusMap[row.status] || row.status,
       `"${(row.notes || '').replace(/"/g, '""')}"`,
       row.transfer_started_at || '', row.transfer_completed_at || '', durationSec,
@@ -254,8 +253,6 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
     { label: 'Übertragung', value: stats.transferring, cls: 'transferring' },
     { label: 'Fertig', value: stats.done, cls: 'done' },
     { label: 'Fehler', value: stats.errors, cls: 'error' },
-    { label: 'Footage', value: stats.total_footage_minutes ? `${stats.total_footage_minutes} min` : '–', cls: '' },
-    { label: 'Clips', value: stats.total_clips || 0, cls: '' },
     { label: 'Ø Transfer', value: stats.avg_transfer_seconds ? fmtDurationSec(stats.avg_transfer_seconds) : '–', cls: '' },
   ];
 
@@ -267,8 +264,6 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
 
   const daySections = orderedDays.map(day => {
     const rows = groups.get(day);
-    const dayClips = rows.reduce((m, i) => m + (i.clip_count || 0), 0);
-    const dayMinutes = rows.reduce((m, i) => m + (i.duration_minutes || 0), 0);
 
     const tableRows = rows.map(i => {
       const cam = [i.camera_name, i.camera_model].filter(Boolean).join(' · ');
@@ -276,10 +271,9 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
       const subBits = [];
       if (i.path) subBits.push(`<span class="sub-k">Ordner</span> ${escHtml(i.path)}`);
       if (i.storage_destination) subBits.push(`<span class="sub-k">Storage</span> ${escHtml(i.storage_destination)}`);
-      if (i.card_label) subBits.push(`<span class="sub-k">Karte</span> ${escHtml(i.card_label)}`);
       if (i.notes) subBits.push(`<span class="sub-k">Notiz</span> ${escHtml(i.notes)}`);
       const subLine = subBits.length
-        ? `<tr class="sub"><td></td><td colspan="7">${subBits.join('<span class="sep">·</span>')}</td></tr>`
+        ? `<tr class="sub"><td></td><td colspan="4">${subBits.join('<span class="sep">·</span>')}</td></tr>`
         : '';
       const crewDot = i.crew_color
         ? `<span class="dot" style="background:${escHtml(i.crew_color)}"></span>`
@@ -290,9 +284,6 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
         <td>${crewDot}${escHtml(i.crew_name || '–')}</td>
         <td>${escHtml(cam || '–')}</td>
         <td class="desc">${escHtml(i.description || '–')}</td>
-        <td>${escHtml(i.stage || '–')}</td>
-        <td class="num">${i.clip_count != null ? i.clip_count : '–'}</td>
-        <td class="num">${i.duration_minutes != null ? i.duration_minutes + ' min' : '–'}</td>
         <td><span class="badge ${i.status}">${escHtml(STATUS_LABELS[i.status] || i.status)}</span><span class="dur">${dur}</span></td>
       </tr>${subLine}`;
     }).join('');
@@ -301,13 +292,12 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
     <section class="day">
       <div class="day-head">
         <h2>${escHtml(day)}</h2>
-        <div class="day-sub">${rows.length} Übertragung${rows.length === 1 ? '' : 'en'}${dayClips ? ` · ${dayClips} Clips` : ''}${dayMinutes ? ` · ${dayMinutes} min` : ''}</div>
+        <div class="day-sub">${rows.length} Übertragung${rows.length === 1 ? '' : 'en'}</div>
       </div>
       <table>
         <thead>
           <tr>
-            <th class="nr">Nr</th><th>Kamera-Person</th><th>Kamera</th><th>Beschreibung</th>
-            <th>Bühne</th><th class="num">Clips</th><th class="num">Footage</th><th>Status</th>
+            <th class="nr">Nr</th><th>Kamera-Person</th><th>Kamera</th><th>Beschreibung</th><th>Status</th>
           </tr>
         </thead>
         <tbody>${tableRows}</tbody>

@@ -48,10 +48,7 @@ function migrate() {
   });
   data.ingests.forEach(i => {
     if (i.day_label === undefined) i.day_label = null;
-    if (i.stage === undefined) i.stage = null;
     if (i.storage_destination === undefined) i.storage_destination = null;
-    if (i.clip_count === undefined) i.clip_count = null;
-    if (i.duration_minutes === undefined) i.duration_minutes = null;
     if (i.sequence_number === undefined) i.sequence_number = null;
   });
 
@@ -74,7 +71,6 @@ function migrate() {
     }
   }
   data.projects.forEach(p => {
-    if (p.stages === undefined) p.stages = [];
     if (p.storage_targets === undefined) p.storage_targets = [];
     if (p.folder_template === undefined) p.folder_template = '{day}/{ymd}_{crew}_{camera}_{nr}';
   });
@@ -120,7 +116,6 @@ function createProject({ name, location, date_start, date_end, notes, folder_tem
     date_start: date_start || null,
     date_end: date_end || null,
     notes: notes || null,
-    stages: [],
     storage_targets: [],
     folder_template: folder_template || '{day}/{ymd}_{crew}_{camera}_{nr}',
     created_at: now(),
@@ -142,7 +137,6 @@ function updateProject(id, fields) {
     date_start: fields.date_start ?? null,
     date_end: fields.date_end ?? null,
     notes: fields.notes ?? null,
-    stages: fields.stages ?? proj.stages,
     storage_targets: fields.storage_targets ?? proj.storage_targets,
     folder_template: fields.folder_template ?? proj.folder_template,
   });
@@ -329,11 +323,7 @@ function createIngest(projectId, fields) {
     camera_id: cameraId,
     description: fields.description || null,
     path: fields.path || null,
-    card_label: fields.card_label || null,
-    stage: fields.stage || null,
     storage_destination: fields.storage_destination || null,
-    clip_count: fields.clip_count ? Number(fields.clip_count) : null,
-    duration_minutes: fields.duration_minutes ? Number(fields.duration_minutes) : null,
     day_label: dayLabel,
     sequence_number: computeSequenceNumber(projectId, crewId, cameraId, dayLabel),
     status: fields.status || 'waiting',
@@ -359,11 +349,7 @@ function updateIngest(id, fields) {
     camera_id: fields.camera_id ? Number(fields.camera_id) : null,
     description: fields.description ?? null,
     path: fields.path ?? null,
-    card_label: fields.card_label ?? null,
-    stage: fields.stage ?? null,
     storage_destination: fields.storage_destination ?? null,
-    clip_count: fields.clip_count !== undefined && fields.clip_count !== '' ? Number(fields.clip_count) : null,
-    duration_minutes: fields.duration_minutes !== undefined && fields.duration_minutes !== '' ? Number(fields.duration_minutes) : null,
     day_label: fields.day_label ?? ingest.day_label,
     notes: fields.notes ?? null,
     updated_at: now(),
@@ -405,8 +391,6 @@ function getStats(projectId) {
   const db = load();
   const projectIngests = db.ingests.filter(i => i.project_id === projectId);
   const byDay = {};
-  let totalMinutes = 0;
-  let totalClips = 0;
   let transferTotalSec = 0;
   let transferCount = 0;
 
@@ -415,9 +399,6 @@ function getStats(projectId) {
     if (!byDay[day]) byDay[day] = { total: 0, waiting: 0, transferring: 0, done: 0 };
     byDay[day].total++;
     byDay[day][i.status] = (byDay[day][i.status] || 0) + 1;
-
-    if (i.duration_minutes) totalMinutes += i.duration_minutes;
-    if (i.clip_count) totalClips += i.clip_count;
 
     if (i.transfer_started_at && i.transfer_completed_at) {
       const s = new Date(i.transfer_started_at.replace(' ', 'T'));
@@ -434,8 +415,6 @@ function getStats(projectId) {
     done: projectIngests.filter(i => i.status === 'done').length,
     errors: projectIngests.filter(i => i.status === 'error').length,
     by_day: byDay,
-    total_footage_minutes: totalMinutes,
-    total_clips: totalClips,
     avg_transfer_seconds: transferCount > 0 ? Math.round(transferTotalSec / transferCount) : 0,
   };
 }

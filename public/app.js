@@ -140,16 +140,6 @@ function fmtTime(dateStr) {
   return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
-function fmtDuration(seconds) {
-  if (!seconds || seconds < 0) return '—';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}:${String(s).padStart(2, '0')}`;
-  return `${s}s`;
-}
-
 function slugify(s) {
   if (!s) return '';
   return String(s)
@@ -178,8 +168,6 @@ function buildFolderName(ingest, project, overrides = {}) {
     day: slugify(overrides.day_label ?? ingest.day_label),
     crew: slugify(overrides.crew_name ?? ingest.crew_name),
     camera: slugify(cameraToken),
-    card: slugify(overrides.card_label ?? ingest.card_label),
-    stage: slugify(overrides.stage ?? ingest.stage),
     nr,
   };
   const rendered = renderTemplate(tmpl, vars);
@@ -692,7 +680,7 @@ function filterIngests(items) {
       const s = search.toLowerCase();
       const haystack = [
         i.crew_name, i.camera_name, i.camera_model, i.description,
-        i.path, i.card_label, i.stage, i.storage_destination, i.notes, i.day_label,
+        i.path, i.storage_destination, i.notes, i.day_label,
       ].filter(Boolean).join(' ').toLowerCase();
       if (!haystack.includes(s)) return false;
     }
@@ -738,7 +726,6 @@ async function maybeAddStorage(name) {
     date_start: state.currentProject.date_start,
     date_end: state.currentProject.date_end,
     notes: state.currentProject.notes,
-    stages: state.currentProject.stages,
     storage_targets: updated,
   });
 }
@@ -767,14 +754,6 @@ function updateTapeStrip() {
   $('#tape-waiting').textContent = stats.waiting;
   $('#tape-transferring').textContent = stats.transferring;
   $('#tape-done').textContent = stats.done;
-
-  const totalMin = state.ingests.reduce((s, i) => s + (i.duration_minutes || 0), 0);
-  if (totalMin > 0) {
-    const h = Math.floor(totalMin / 60), m = totalMin % 60;
-    $('#tape-footage').textContent = `${h}h ${String(m).padStart(2, '0')}m`;
-  } else {
-    $('#tape-footage').textContent = '—';
-  }
 }
 
 function tickTapeClock() {
@@ -866,7 +845,7 @@ function renderKCard(i) {
         ${camTag ? `<span class="kcard-dot">·</span>${camTag}` : ''}
       </div>
       ${i.path ? `<div class="kcard-foot"><span class="kcard-path" title="${esc(i.path)}">${esc(i.path)}</span></div>` : ''}
-      ${i.status === 'done' ? `<div class="kcard-foot" style="margin-top:8px"><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums">${i.duration_minutes ? i.duration_minutes + ' min' : ''}</span><span class="kcard-arrow">→ Cutter</span></div>` : ''}
+      ${i.status === 'done' ? `<div class="kcard-foot" style="margin-top:8px"><span class="kcard-arrow">→ Cutter</span></div>` : ''}
     </div>
   `;
 }
@@ -945,9 +924,7 @@ function renderListRow(i) {
   const timeHtml = `<span style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">${fmtTime(i.created_at)}</span>`;
 
   const tags = [];
-  if (i.card_label) tags.push(`<span class="kcard-tag card-tag">${esc(i.card_label)}</span>`);
   if (i.camera_name) tags.push(`<span class="kcard-tag cam-tag">${esc(i.camera_name)}</span>`);
-  if (i.stage) tags.push(`<span class="kcard-tag">${esc(i.stage)}</span>`);
 
   return `
     <div class="list-row status-${i.status}" data-id="${i.id}">
@@ -980,8 +957,6 @@ async function renderDashboard() {
   $('#bar-waiting').style.width = `${(stats.waiting / max) * 100}%`;
   $('#bar-transferring').style.width = `${(stats.transferring / max) * 100}%`;
   $('#bar-done').style.width = `${(stats.done / max) * 100}%`;
-
-  $('#dash-footage').textContent = stats.total_footage_minutes ? fmtDuration(stats.total_footage_minutes * 60) : '—';
 
   const latest = state.ingests.reduce((best, i) => !best || i.created_at > best.created_at ? i : best, null);
   if (latest) {
@@ -1051,14 +1026,12 @@ async function renderDashboard() {
 function updateFolderPreview() {
   const out = $('#folder-preview-output');
   if (!out || !state.currentProject) return;
-  const tmpl = $('#folder-template').value.trim() || '{day}_{crew}_{camera}_{card}';
+  const tmpl = $('#folder-template').value.trim() || '{day}/{ymd}_{crew}_{camera}_{nr}';
   const sample = {
     created_at: new Date().toISOString().replace('T', ' '),
     day_label: 'Day1',
     crew_name: 'Max Mustermann',
     camera_name: 'Cam A',
-    card_label: 'A001',
-    stage: 'Main Stage',
     sequence_number: 3,
   };
   const fakeProject = { ...state.currentProject, folder_template: tmpl };
@@ -1164,7 +1137,7 @@ function renderCutterView() {
   const dayFilter = $('#cutter-day-filter')?.value || '';
   const crewFilter = $('#cutter-crew-filter')?.value || '';
   if (search) {
-    items = items.filter(i => [i.crew_name, i.camera_name, i.description, i.path, i.card_label, i.stage, i.day_label]
+    items = items.filter(i => [i.crew_name, i.camera_name, i.description, i.path, i.day_label]
       .filter(Boolean).join(' ').toLowerCase().includes(search));
   }
   if (dayFilter) items = items.filter(i => i.day_label === dayFilter);
@@ -1239,9 +1212,7 @@ function renderCutterRow(i) {
 
   const isNew = i.status === 'done' && !state.knownDoneIds.has(i.id);
   const tags = [];
-  if (i.card_label) tags.push(`<span class="kcard-tag card-tag">${esc(i.card_label)}</span>`);
   if (i.camera_name) tags.push(`<span class="kcard-tag cam-tag">${esc(i.camera_name)}</span>`);
-  if (i.stage) tags.push(`<span class="kcard-tag">${esc(i.stage)}</span>`);
   if (i.day_label) tags.push(`<span class="kcard-tag day-tag">${esc(i.day_label)}</span>`);
 
   const status = i.status === 'done'
@@ -1405,8 +1376,6 @@ function openSidePanel(id) {
   $('#sp-desc').value = ingest.description || '';
   $('#sp-storage').value = ingest.storage_destination || '';
   $('#sp-path').value = ingest.path || '';
-  $('#sp-clips').value = ingest.clip_count || '';
-  $('#sp-duration').value = ingest.duration_minutes || '';
   $('#sp-notes').value = ingest.notes || '';
 
   $$('.btn-status-action').forEach(b => b.classList.toggle('active', b.dataset.status === ingest.status));
@@ -1549,7 +1518,6 @@ function wireEvents() {
       date_start: $('#proj-date-start').value,
       date_end: $('#proj-date-end').value,
       notes: $('#proj-notes').value.trim(),
-      stages: state.currentProject.stages,
       storage_targets: state.currentProject.storage_targets,
     });
   });
@@ -1578,8 +1546,8 @@ function wireEvents() {
       name: state.currentProject.name, location: state.currentProject.location,
       date_start: state.currentProject.date_start, date_end: state.currentProject.date_end,
       notes: state.currentProject.notes,
-      stages: state.currentProject.stages, storage_targets: state.currentProject.storage_targets,
-      folder_template: tmpl || '{day}_{crew}_{camera}_{card}',
+      storage_targets: state.currentProject.storage_targets,
+      folder_template: tmpl || '{day}/{ymd}_{crew}_{camera}_{nr}',
     });
     updateFolderPreview();
   });
@@ -1658,7 +1626,7 @@ function wireEvents() {
         name: state.currentProject.name, location: state.currentProject.location,
         date_start: state.currentProject.date_start, date_end: state.currentProject.date_end,
         notes: state.currentProject.notes,
-        stages: state.currentProject.stages, storage_targets: targets,
+        storage_targets: targets,
       });
     }
   });
@@ -1707,8 +1675,6 @@ function wireEvents() {
       description: $('#sp-desc').value.trim(),
       storage_destination: $('#sp-storage').value.trim(),
       path: $('#sp-path').value.trim(),
-      clip_count: $('#sp-clips').value,
-      duration_minutes: $('#sp-duration').value,
       notes: $('#sp-notes').value.trim(),
     });
     closeSidePanel();
@@ -1744,7 +1710,7 @@ async function submitQuickAdd() {
   // Remember smart defaults
   state.smartDefaults = { crew_id: crewId, camera_id: cameraId };
 
-  // Clear ephemeral fields, keep crew/camera/stage as defaults
+  // Clear ephemeral fields, keep crew/camera as defaults
   $('#qa-desc').value = '';
 
   // Auto-open side panel for the new ingest so user can copy folder name
