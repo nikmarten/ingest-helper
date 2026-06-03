@@ -33,6 +33,30 @@ function load() {
   return data;
 }
 
+// Mirror of the frontend slugify so backend-computed sequence numbers match
+// exactly what appears in the generated folder name.
+function slugify(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+    .replace(/[^a-zA-Z0-9_-]+/g, '')
+    .trim();
+}
+
+// Identity of a generated folder leaf minus the running number, i.e. the parts
+// {ymd}_{crew}_{camera}. Two ingests that share this key MUST get distinct
+// sequence numbers so their folder names don't collide. Grouped by the calendar
+// date (ymd, as used in the folder name) — NOT by day_label, which can differ
+// for ingests on the same date (e.g. "Pre-Show" and "Day 1").
+function folderKey(i) {
+  const ymd = (i.created_at || '').slice(0, 10).replace(/-/g, '');
+  const crew = data.crew.find(c => c.id === i.crew_id);
+  const cam = data.cameras.find(c => c.id === i.camera_id);
+  const camToken = cam ? (cam.short_code || cam.name) : '';
+  return `${i.project_id}|${ymd}|${slugify(crew ? crew.name : '')}|${slugify(camToken)}`;
+}
+
 function migrate() {
   if (!data._counters) {
     data._counters = {
@@ -52,23 +76,27 @@ function migrate() {
     if (i.sequence_number === undefined) i.sequence_number = null;
   });
 
-  // Backfill sequence_number for existing ingests (grouped by project, crew, camera, day)
-  const needsBackfill = data.ingests.filter(i => i.sequence_number == null);
-  if (needsBackfill.length > 0) {
+  // (Re)compute sequence_number so every generated folder leaf is unique and
+  // continuous per (project, calendar date, person, camera). Deterministic by
+  // created_at (id as tiebreaker), so this is idempotent and safe to run on
+  // every load — it also repairs older data numbered by day_label, which could
+  // collide when "Pre-Show" and "Day 1" fell on the same calendar date.
+  {
     const groups = {};
-    for (const i of needsBackfill) {
-      const key = `${i.project_id}|${i.crew_id ?? 'n'}|${i.camera_id ?? 'n'}|${i.day_label ?? 'n'}`;
-      (groups[key] ||= []).push(i);
+    for (const i of data.ingests) {
+      (groups[folderKey(i)] ||= []).push(i);
     }
+    let seqChanged = false;
     for (const key in groups) {
-      groups[key].sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-      const sameGroupExisting = data.ingests.filter(i => {
-        const k = `${i.project_id}|${i.crew_id ?? 'n'}|${i.camera_id ?? 'n'}|${i.day_label ?? 'n'}`;
-        return k === key && i.sequence_number != null;
+      groups[key].sort((a, b) => {
+        const c = (a.created_at || '').localeCompare(b.created_at || '');
+        return c !== 0 ? c : a.id - b.id;
       });
-      let maxExisting = sameGroupExisting.reduce((m, i) => Math.max(m, i.sequence_number), 0);
-      groups[key].forEach(i => { i.sequence_number = ++maxExisting; });
+      groups[key].forEach((i, idx) => {
+        if (i.sequence_number !== idx + 1) { i.sequence_number = idx + 1; seqChanged = true; }
+      });
     }
+    if (seqChanged) save();
   }
   data.projects.forEach(p => {
     if (p.storage_targets === undefined) p.storage_targets = [];
@@ -302,10 +330,11 @@ function computeDayLabel(projectId, createdAt) {
   return `Day ${diffDays + 1}`;
 }
 
-function computeSequenceNumber(projectId, crewId, cameraId, dayLabel) {
+function computeSequenceNumber(projectId, crewId, cameraId, createdAt) {
   const db = load();
+  const key = folderKey({ project_id: projectId, crew_id: crewId, camera_id: cameraId, created_at: createdAt });
   const max = db.ingests
-    .filter(i => i.project_id === projectId && i.crew_id === crewId && i.camera_id === cameraId && i.day_label === dayLabel)
+    .filter(i => folderKey(i) === key)
     .reduce((m, i) => Math.max(m, i.sequence_number || 0), 0);
   return max + 1;
 }
@@ -325,7 +354,7 @@ function createIngest(projectId, fields) {
     path: fields.path || null,
     storage_destination: fields.storage_destination || null,
     day_label: dayLabel,
-    sequence_number: computeSequenceNumber(projectId, crewId, cameraId, dayLabel),
+    sequence_number: computeSequenceNumber(projectId, crewId, cameraId, createdAt),
     status: fields.status || 'waiting',
     notes: fields.notes || null,
     created_at: createdAt,
