@@ -179,6 +179,42 @@ function buildFolderName(ingest, project, overrides = {}) {
     .join('/');
 }
 
+// Full disk path for an ingest: Storage-Ziel (main folder) + generated folder name.
+// Falls back to the generated name alone, or the manual path field, if storage is unset.
+function fullStoragePath(i) {
+  const folder = state.currentProject ? buildFolderName(i, state.currentProject) : '';
+  const base = (i.storage_destination || '').trim().replace(/[\/\\]+$/, '');
+  if (base && folder) return `${base}/${folder}`;
+  if (base) return base;
+  if (folder) return folder;
+  return i.path || '';
+}
+
+async function copyToClipboard(text) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Pfad kopiert');
+    return;
+  } catch (e) {
+    // Fall through to legacy fallback (e.g. non-secure context or denied permission)
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast(ok ? 'Pfad kopiert' : 'Konnte nicht kopieren', ok ? 'success' : 'error');
+  } catch (e) {
+    toast('Konnte nicht kopieren', 'error');
+  }
+}
+
 function parseDate(dateStr) {
   if (!dateStr) return null;
   return new Date(dateStr.replace(' ', 'T'));
@@ -912,6 +948,14 @@ function renderList() {
   container.querySelectorAll('.list-row').forEach(row => {
     row.addEventListener('click', () => openSidePanel(Number(row.dataset.id)));
   });
+
+  // Click the full path to copy it (don't also open the side panel)
+  container.querySelectorAll('.path-copy').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(el.dataset.path);
+    });
+  });
 }
 
 function renderListRow(i) {
@@ -926,6 +970,11 @@ function renderListRow(i) {
   const tags = [];
   if (i.camera_name) tags.push(`<span class="kcard-tag cam-tag">${esc(i.camera_name)}</span>`);
 
+  const fullPath = fullStoragePath(i);
+  const pathHtml = fullPath
+    ? `<span class="kcard-path path-copy" data-path="${esc(fullPath)}" title="Klicken zum Kopieren">${esc(fullPath)}</span>`
+    : '';
+
   return `
     <div class="list-row status-${i.status}" data-id="${i.id}">
       <span class="list-id">#${i.id}</span>
@@ -935,7 +984,7 @@ function renderListRow(i) {
           <span class="list-crew-name">${esc(i.crew_name || 'Keine Person')}</span>
           ${i.description ? `<span class="list-desc">${esc(i.description)}</span>` : ''}
         </div>
-        <div class="list-meta">${tags.join('')} ${i.path ? `<span class="kcard-path">${esc(i.path)}</span>` : ''}</div>
+        <div class="list-meta">${tags.join('')} ${pathHtml}</div>
       </div>
       ${timeHtml}
       <div class="status-badge status-${i.status}">${statusLabels[i.status]}</div>
@@ -1180,6 +1229,14 @@ function renderCutterView() {
     });
   });
 
+  // Click the path text itself to copy it
+  list.querySelectorAll('.path-copy').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(el.dataset.path);
+    });
+  });
+
   // Wire per-row "Gesehen" buttons
   list.querySelectorAll('.cutter-mark-seen').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1230,10 +1287,11 @@ function renderCutterRow(i) {
        </button>`
     : '';
 
-  const pathRow = i.path
+  const fullPath = fullStoragePath(i);
+  const pathRow = fullPath
     ? `<div class="cutter-path-row">
-        <span class="cutter-path">${esc(i.path)}</span>
-        <button class="cutter-copy" data-path="${esc(i.path)}" title="Pfad kopieren">
+        <span class="cutter-path path-copy" data-path="${esc(fullPath)}" title="Klicken zum Kopieren">${esc(fullPath)}</span>
+        <button class="cutter-copy" data-path="${esc(fullPath)}" title="Pfad kopieren">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Kopieren
         </button>

@@ -794,6 +794,14 @@ select.qa-input { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg
   flex: 1;
   min-width: 0;
 }
+.path-copy {
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.path-copy:hover {
+  color: var(--text);
+  border-color: var(--line-3);
+}
 .kcard-arrow {
   font-size: 11px;
   color: var(--c-done);
@@ -855,7 +863,7 @@ select.qa-input { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg
 .list-row {
   position: relative;
   display: grid;
-  grid-template-columns: 36px 26px 22px 1fr auto auto auto;
+  grid-template-columns: 36px 26px 1fr auto auto;
   gap: 12px;
   align-items: center;
   padding: 11px 16px 11px 18px;
