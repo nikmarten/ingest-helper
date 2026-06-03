@@ -702,9 +702,13 @@ function populateCameraSelects() {
 // selected in crewSel. If no crew is selected, show all cameras (initial state).
 // Preserves the currently-selected camera even if it doesn't match the crew —
 // important when editing an existing ingest whose camera was assigned earlier.
-function refillCameraSelect(cameraSel, crewSel, placeholder) {
+// Pass desiredValue to force a specific camera id (used when opening an ingest):
+// relying on cameraSel.value is unsafe because the option may not exist yet if
+// the dropdown still holds a previous crew's cameras — which silently dropped
+// the camera on save.
+function refillCameraSelect(cameraSel, crewSel, placeholder, desiredValue) {
   if (!cameraSel) return;
-  const val = cameraSel.value;
+  const val = desiredValue !== undefined ? String(desiredValue || '') : cameraSel.value;
   const crewId = crewSel && crewSel.value ? Number(crewSel.value) : null;
   let cams = crewId
     ? state.cameras.filter(c => c.owner_crew_id === crewId)
@@ -1523,8 +1527,9 @@ function openSidePanel(id) {
 
   $('#sp-id-input').value = ingest.id;
   $('#sp-crew').value = ingest.crew_id || '';
-  $('#sp-camera').value = ingest.camera_id || '';
-  refillCameraSelect($('#sp-camera'), $('#sp-crew'), '— wählen —');
+  // Build the camera options for this crew AND force-select the ingest's camera
+  // in one step — never set .value before the option exists (that loses it).
+  refillCameraSelect($('#sp-camera'), $('#sp-crew'), '— wählen —', ingest.camera_id || '');
   $('#sp-day').value = ingest.day_label || '';
   $('#sp-desc').value = ingest.description || '';
   $('#sp-storage').value = ingest.storage_destination || '';
