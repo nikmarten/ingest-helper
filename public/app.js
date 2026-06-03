@@ -898,6 +898,8 @@ function renderKCard(i) {
   `;
 }
 
+// Card handlers run on every board render — cards are recreated each time, so
+// their listeners are discarded with the old DOM nodes (no accumulation).
 function attachCardHandlers() {
   $$('.kcard').forEach(card => {
     card.addEventListener('click', () => openSidePanel(Number(card.dataset.id)));
@@ -908,9 +910,16 @@ function attachCardHandlers() {
     });
     card.addEventListener('dragend', () => card.classList.remove('dragging'));
   });
+}
 
+// Column drop targets are PERSISTENT DOM — attach exactly once at startup.
+// (Re-attaching per render leaked listeners: one drop fired changeStatus N times,
+// spamming N toasts and N PATCH requests.)
+function attachColumnDropHandlers() {
   $$('.column').forEach(col => {
     const body = col.querySelector('.column-body');
+    if (!body || body.dataset.dropWired) return;
+    body.dataset.dropWired = '1';
     const status = body.dataset.drop;
 
     body.addEventListener('dragover', (e) => {
@@ -1497,6 +1506,9 @@ function focusQuickAdd() {
 }
 
 function wireEvents() {
+  // Board column drop targets — wired once (persistent DOM).
+  attachColumnDropHandlers();
+
   // Role picker
   $$('#view-role .role-card').forEach(c => c.addEventListener('click', () => setRole(c.dataset.role)));
   $('#btn-role-switch').addEventListener('click', switchRole);
