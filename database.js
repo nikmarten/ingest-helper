@@ -57,6 +57,35 @@ function folderKey(i) {
   return `${i.project_id}|${ymd}|${slugify(crew ? crew.name : '')}|${slugify(camToken)}`;
 }
 
+// Render the generated folder name for a hydrated ingest, mirroring the frontend
+// buildFolderName so the report shows exactly what the operator sees in the app.
+// Expects a hydrated ingest (crew_name, camera_short_code, camera_name, …).
+function buildFolderName(ingest, project) {
+  if (!project) return '';
+  const tmpl = project.folder_template || '{day}/{ymd}_{crew}_{camera}_{nr}';
+  const date = (ingest.created_at || '').slice(0, 10);
+  const ymd = date.replace(/-/g, '');
+  const nr = ingest.sequence_number != null ? String(ingest.sequence_number).padStart(3, '0') : '';
+  const cameraToken = ingest.camera_short_code != null && ingest.camera_short_code !== ''
+    ? ingest.camera_short_code
+    : ingest.camera_name;
+  const vars = {
+    project: slugify(project.name),
+    date,
+    ymd,
+    day: slugify(ingest.day_label),
+    crew: slugify(ingest.crew_name),
+    camera: slugify(cameraToken),
+    nr,
+  };
+  const rendered = tmpl.replace(/\{(\w+)\}/g, (_, key) => (vars[key] != null ? vars[key] : ''));
+  return rendered
+    .split('/')
+    .map(seg => seg.replace(/_+/g, '_').replace(/^_+|_+$/g, ''))
+    .filter(Boolean)
+    .join('/');
+}
+
 function migrate() {
   if (!data._counters) {
     data._counters = {
@@ -455,5 +484,6 @@ module.exports = {
   getCameras, createCamera, updateCamera, deleteCamera,
   getIngests, getIngest, createIngest, updateIngest, updateIngestStatus, deleteIngest,
   getStats,
+  buildFolderName,
   CREW_COLORS,
 };

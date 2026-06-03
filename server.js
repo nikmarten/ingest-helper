@@ -268,8 +268,9 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
     const tableRows = rows.map(i => {
       const cam = [i.camera_name, i.camera_model].filter(Boolean).join(' · ');
       const dur = fmtDurationSec(transferSeconds(i));
+      const folderName = db.buildFolderName(i, project);
       const subBits = [];
-      if (i.path) subBits.push(`<span class="sub-k">Ordner</span> ${escHtml(i.path)}`);
+      if (folderName) subBits.push(`<span class="sub-k">Ordner</span> <span class="mono">${escHtml(folderName)}</span>`);
       if (i.storage_destination) subBits.push(`<span class="sub-k">Storage</span> ${escHtml(i.storage_destination)}`);
       if (i.notes) subBits.push(`<span class="sub-k">Notiz</span> ${escHtml(i.notes)}`);
       const subLine = subBits.length
@@ -357,6 +358,7 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
   tr.sub td { border-bottom: 1px solid #ececef; padding-top: 0; color: #76767e; font-size: 11px; }
   tr.sub .sub-k { text-transform: uppercase; letter-spacing: .04em; font-size: 9px; color: #aeaeb4; margin-right: 3px; }
   tr.sub .sep { margin: 0 8px; color: #d4d4d8; }
+  tr.sub .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #515154; }
   .empty { color: #76767e; padding: 40px 0; text-align: center; }
   footer.report { margin-top: 28px; border-top: 1px solid #e5e5e7; padding-top: 10px;
     color: #aeaeb4; font-size: 10px; display: flex; justify-content: space-between; }
