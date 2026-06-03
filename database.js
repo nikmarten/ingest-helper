@@ -86,6 +86,28 @@ function buildFolderName(ingest, project) {
     .join('/');
 }
 
+// Renumber sequence_number continuously per folder group (project, calendar
+// date, person, camera), ordered by created_at (id as tiebreaker). Closes gaps
+// left by deletions and keeps every generated folder name unique. Idempotent;
+// returns true if anything changed. Call after any mutation affecting grouping.
+function resequence() {
+  const groups = {};
+  for (const i of data.ingests) {
+    (groups[folderKey(i)] ||= []).push(i);
+  }
+  let changed = false;
+  for (const key in groups) {
+    groups[key].sort((a, b) => {
+      const c = (a.created_at || '').localeCompare(b.created_at || '');
+      return c !== 0 ? c : a.id - b.id;
+    });
+    groups[key].forEach((i, idx) => {
+      if (i.sequence_number !== idx + 1) { i.sequence_number = idx + 1; changed = true; }
+    });
+  }
+  return changed;
+}
+
 function migrate() {
   if (!data._counters) {
     data._counters = {
@@ -105,28 +127,10 @@ function migrate() {
     if (i.sequence_number === undefined) i.sequence_number = null;
   });
 
-  // (Re)compute sequence_number so every generated folder leaf is unique and
-  // continuous per (project, calendar date, person, camera). Deterministic by
-  // created_at (id as tiebreaker), so this is idempotent and safe to run on
-  // every load — it also repairs older data numbered by day_label, which could
-  // collide when "Pre-Show" and "Day 1" fell on the same calendar date.
-  {
-    const groups = {};
-    for (const i of data.ingests) {
-      (groups[folderKey(i)] ||= []).push(i);
-    }
-    let seqChanged = false;
-    for (const key in groups) {
-      groups[key].sort((a, b) => {
-        const c = (a.created_at || '').localeCompare(b.created_at || '');
-        return c !== 0 ? c : a.id - b.id;
-      });
-      groups[key].forEach((i, idx) => {
-        if (i.sequence_number !== idx + 1) { i.sequence_number = idx + 1; seqChanged = true; }
-      });
-    }
-    if (seqChanged) save();
-  }
+  // Repair existing data: numbers older entries (incl. those numbered by the old
+  // day_label scheme, which could collide when "Pre-Show" and "Day 1" fell on the
+  // same calendar date). Idempotent, so safe on every load.
+  if (resequence()) save();
   data.projects.forEach(p => {
     if (p.storage_targets === undefined) p.storage_targets = [];
     if (p.folder_template === undefined) p.folder_template = '{day}/{ymd}_{crew}_{camera}_{nr}';
@@ -412,6 +416,7 @@ function updateIngest(id, fields) {
     notes: fields.notes ?? null,
     updated_at: now(),
   });
+  resequence(); // crew/camera/day may have changed → renumber affected groups
   save();
   const hydrated = getIngest(id);
   emit('ingest:updated', hydrated);
@@ -439,6 +444,7 @@ function updateIngestStatus(id, status) {
 function deleteIngest(id) {
   const db = load();
   db.ingests = db.ingests.filter(i => i.id !== id);
+  resequence(); // close the gap so later entries in the group move up (003 → 002)
   save();
   emit('ingest:deleted', { id });
 }
