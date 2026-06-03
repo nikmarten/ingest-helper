@@ -458,6 +458,12 @@ function populateCrewSelects() {
       opt.textContent = `${c.name} (${c.role})`;
       sel.appendChild(opt);
     }
+    if (sel.id === 'qa-crew') {
+      const opt = document.createElement('option');
+      opt.value = '__new__';
+      opt.textContent = '➕ Neue Person…';
+      sel.appendChild(opt);
+    }
     if (val) sel.value = val;
   }
 }
@@ -638,6 +644,12 @@ function refillCameraSelect(cameraSel, crewSel, placeholder) {
     const opt = document.createElement('option');
     opt.value = c.id;
     opt.textContent = c.short_code ? `${c.name} · ${c.short_code}` : c.name;
+    cameraSel.appendChild(opt);
+  }
+  if (cameraSel.id === 'qa-camera') {
+    const opt = document.createElement('option');
+    opt.value = '__new__';
+    opt.textContent = '➕ Neue Kamera…';
     cameraSel.appendChild(opt);
   }
   if (val && cams.some(c => String(c.id) === String(val))) {
@@ -1614,6 +1626,7 @@ function wireEvents() {
   // Quick-add: when crew is picked, restrict camera dropdown to that crew's cameras
   // and auto-select the first owned camera as a convenience.
   $('#qa-crew').addEventListener('change', () => {
+    if ($('#qa-crew').value === '__new__') { startInlineNew('crew'); return; }
     refillCameraSelect($('#qa-camera'), $('#qa-crew'), 'Kamera...');
     const crewId = Number($('#qa-crew').value);
     if (!crewId) return;
@@ -1623,6 +1636,25 @@ function wireEvents() {
       $('#qa-camera').value = ownedCameras[0].id;
     }
   });
+
+  // Quick-add: "Neue Kamera…" sentinel opens an inline name field.
+  $('#qa-camera').addEventListener('change', () => {
+    if ($('#qa-camera').value === '__new__') startInlineNew('camera');
+  });
+
+  // Inline new-entry fields: Enter creates, Escape cancels, blur commits/cancels.
+  for (const kind of ['crew', 'camera']) {
+    const input = kind === 'crew' ? $('#qa-crew-new') : $('#qa-camera-new');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitInlineNew(kind); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancelInlineNew(kind); }
+    });
+    input.addEventListener('blur', () => {
+      if (input.hasAttribute('hidden')) return;
+      if (input.value.trim()) commitInlineNew(kind);
+      else cancelInlineNew(kind);
+    });
+  }
 
   // Side panel: same crew→camera filter when editing an ingest.
   $('#sp-crew').addEventListener('change', () => {
@@ -1745,6 +1777,57 @@ function wireEvents() {
 
   // Keyboard shortcuts
   document.addEventListener('keydown', handleShortcut);
+}
+
+// ---- Quick-add: inline "create new person/camera" from the dropdowns ----
+
+function inlineNewEls(kind) {
+  return kind === 'crew'
+    ? { sel: $('#qa-crew'), input: $('#qa-crew-new') }
+    : { sel: $('#qa-camera'), input: $('#qa-camera-new') };
+}
+
+function startInlineNew(kind) {
+  const { sel, input } = inlineNewEls(kind);
+  sel.value = '';
+  sel.setAttribute('hidden', '');
+  input.value = '';
+  input.removeAttribute('hidden');
+  input.focus();
+}
+
+function cancelInlineNew(kind) {
+  const { sel, input } = inlineNewEls(kind);
+  input.setAttribute('hidden', '');
+  input.value = '';
+  sel.value = '';
+  sel.removeAttribute('hidden');
+}
+
+async function commitInlineNew(kind) {
+  const { sel, input } = inlineNewEls(kind);
+  const name = input.value.trim();
+  if (!name || !state.currentProjectId) { cancelInlineNew(kind); return; }
+  try {
+    if (kind === 'crew') {
+      const created = await api(`/api/projects/${state.currentProjectId}/crew`, { method: 'POST', body: { name, role: 'Kamera' } });
+      await loadCrew();
+      $('#qa-crew').value = created.id;
+      refillCameraSelect($('#qa-camera'), $('#qa-crew'), 'Kamera...');
+      toast(`Person "${name}" angelegt`);
+    } else {
+      const ownerCrewId = $('#qa-crew').value && $('#qa-crew').value !== '__new__' ? Number($('#qa-crew').value) : null;
+      const created = await api(`/api/projects/${state.currentProjectId}/cameras`, { method: 'POST', body: { name, owner_crew_id: ownerCrewId } });
+      await loadCameras();
+      $('#qa-camera').value = created.id;
+      toast(`Kamera "${name}" angelegt`);
+    }
+  } catch (e) {
+    toast('Konnte nicht anlegen', 'error');
+  }
+  input.setAttribute('hidden', '');
+  input.value = '';
+  sel.removeAttribute('hidden');
 }
 
 async function submitQuickAdd() {
