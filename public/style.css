@@ -573,7 +573,18 @@ select.qa-input { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg
   gap: 12px;
   flex-wrap: wrap;
 }
-.qa-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.qa-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.qa-day-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; font-size: 12px; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--line-2);
+  border-radius: var(--r-md); color: var(--text); cursor: pointer; white-space: nowrap;
+  transition: border-color var(--t-fast), background-color var(--t-fast);
+}
+.qa-day-chip:hover { background: var(--surface-3); border-color: var(--line-3); }
+.qa-day-chip svg { color: var(--accent); flex-shrink: 0; }
+.qa-day-chip.unset { color: var(--text-3); font-weight: 500; }
+.qa-day-chip.unset svg { color: var(--text-3); }
 .qa-search { width: 220px; padding: 5px 10px; font-size: 12px; }
 .qa-filter { width: 140px; padding: 5px 24px 5px 10px; font-size: 12px; }
 .qa-hint { font-size: 11px; color: var(--text-4); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }

@@ -134,6 +134,8 @@ function migrate() {
   data.projects.forEach(p => {
     if (p.storage_targets === undefined) p.storage_targets = [];
     if (p.folder_template === undefined) p.folder_template = '{day}/{ymd}_{crew}_{camera}_{nr}';
+    if (p.current_day_label === undefined) p.current_day_label = null;
+    if (p.current_day_date === undefined) p.current_day_date = null;
   });
   data.cameras.forEach(c => {
     if (c.owner_crew_id === undefined) c.owner_crew_id = null;
@@ -179,6 +181,8 @@ function createProject({ name, location, date_start, date_end, notes, folder_tem
     notes: notes || null,
     storage_targets: [],
     folder_template: folder_template || '{day}/{ymd}_{crew}_{camera}_{nr}',
+    current_day_label: null,
+    current_day_date: null,
     created_at: now(),
     archived: 0,
   };
@@ -200,6 +204,8 @@ function updateProject(id, fields) {
     notes: fields.notes ?? null,
     storage_targets: fields.storage_targets ?? proj.storage_targets,
     folder_template: fields.folder_template ?? proj.folder_template,
+    current_day_label: fields.current_day_label !== undefined ? (fields.current_day_label || null) : proj.current_day_label,
+    current_day_date: fields.current_day_date !== undefined ? (fields.current_day_date || null) : proj.current_day_date,
   });
   save();
   emit('project:updated', proj);
@@ -377,7 +383,9 @@ function createIngest(projectId, fields) {
   const createdAt = now();
   const crewId = fields.crew_id ? Number(fields.crew_id) : null;
   const cameraId = fields.camera_id ? Number(fields.camera_id) : null;
-  const dayLabel = fields.day_label || computeDayLabel(projectId, createdAt);
+  const proj = db.projects.find(p => p.id === projectId);
+  // Priority: explicit field → project's manually set current day → auto from date_start
+  const dayLabel = fields.day_label || (proj && proj.current_day_label) || computeDayLabel(projectId, createdAt);
   const ingest = {
     id: nextId('ingests'),
     project_id: projectId,

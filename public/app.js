@@ -404,8 +404,10 @@ async function selectProject(id) {
   populateStorageDatalist();
   populateDayFilter();
   populateCrewFilter();
+  updateDayChip();
   setView(['board', 'list', 'dashboard'].includes(state.view) ? state.view : 'board');
   renderProjectSwitcher();
+  maybeAskNewDay();
 }
 
 async function createProject(fields) {
@@ -424,6 +426,78 @@ async function updateCurrentProject(fields) {
   populateStorageDatalist();
   toast('Projekt gespeichert');
   return project;
+}
+
+// ---- Drehtag (current day label, stored on the project) ----
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Suggest the next day value by incrementing a trailing number ("Day 1" -> "Day 2").
+function nextDaySuggestion(label) {
+  if (!label) return 'Day 1';
+  const m = String(label).match(/^(.*?)(\d+)(\D*)$/);
+  return m ? `${m[1]}${Number(m[2]) + 1}${m[3]}` : label;
+}
+
+function updateDayChip() {
+  const el = $('#qa-day-label');
+  const chip = $('#qa-day-chip');
+  if (!el || !chip) return;
+  const lbl = state.currentProject?.current_day_label;
+  el.textContent = lbl || 'Tag setzen';
+  chip.classList.toggle('unset', !lbl);
+}
+
+// Persist the current day on the project and stamp today's date so the new-day
+// prompt won't fire again until the calendar date changes.
+async function setProjectDay(label) {
+  const p = state.currentProject;
+  if (!p) return;
+  const body = {
+    name: p.name, location: p.location, date_start: p.date_start, date_end: p.date_end,
+    notes: p.notes, storage_targets: p.storage_targets, folder_template: p.folder_template,
+    current_day_label: label || null,
+    current_day_date: todayStr(),
+  };
+  const project = await api(`/api/projects/${p.id}`, { method: 'PUT', body });
+  state.currentProject = project;
+  state.projects = state.projects.map(x => x.id === project.id ? project : x);
+  updateDayChip();
+}
+
+function openDayModal(isNewDay) {
+  const p = state.currentProject;
+  if (!p) return;
+  state.dayPromptIsNewDay = !!isNewDay;
+  const cur = p.current_day_label || '';
+  const hint = $('#day-modal-hint');
+  if (isNewDay) {
+    $('#day-modal-title').textContent = 'Neuer Tag erkannt';
+    hint.textContent = `Zuletzt war der Drehtag „${cur || '—'}" gesetzt (am ${p.current_day_date || '—'}). Für neue Übertragungen anpassen?`;
+    hint.removeAttribute('hidden');
+    $('#day-input').value = nextDaySuggestion(cur);
+    $('#day-keep').textContent = 'Beibehalten';
+  } else {
+    $('#day-modal-title').textContent = 'Drehtag einstellen';
+    hint.setAttribute('hidden', '');
+    $('#day-input').value = cur;
+    $('#day-keep').textContent = 'Abbrechen';
+  }
+  openModal('modal-day');
+}
+
+// On opening the app on a new calendar day, ask once whether to adjust the day.
+function maybeAskNewDay() {
+  const p = state.currentProject;
+  if (!p || !p.current_day_label || !p.current_day_date) return;
+  if (p.current_day_date === todayStr()) return;
+  state.dayPrompted = state.dayPrompted || new Set();
+  if (state.dayPrompted.has(p.id)) return;
+  state.dayPrompted.add(p.id);
+  openDayModal(true);
 }
 
 async function archiveCurrentProject() {
@@ -1508,6 +1582,21 @@ function focusQuickAdd() {
 function wireEvents() {
   // Board column drop targets — wired once (persistent DOM).
   attachColumnDropHandlers();
+
+  // Drehtag: chip opens the editor; modal saves or keeps the current day.
+  $('#qa-day-chip')?.addEventListener('click', () => openDayModal(false));
+  $('#form-day')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const label = $('#day-input').value.trim();
+    await setProjectDay(label);
+    closeAllModals();
+    toast(label ? `Drehtag: ${label}` : 'Drehtag entfernt');
+  });
+  $('#day-keep')?.addEventListener('click', async () => {
+    // On a new-day prompt, "keep" still stamps today so it won't ask again.
+    if (state.dayPromptIsNewDay) await setProjectDay(state.currentProject?.current_day_label || '');
+    closeAllModals();
+  });
 
   // Role picker
   $$('#view-role .role-card').forEach(c => c.addEventListener('click', () => setRole(c.dataset.role)));
