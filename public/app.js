@@ -1865,7 +1865,32 @@ function wireEvents() {
   $('#btn-export-csv').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/csv`));
   $('#btn-export-json').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/json`));
   $('#btn-export-html').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/html`));
-  $('#btn-export-pdf').addEventListener('click', () => state.currentProjectId && window.open(`/api/projects/${state.currentProjectId}/export/html?print=1`));
+  $('#btn-export-pdf').addEventListener('click', async () => {
+    if (!state.currentProjectId) return;
+    const btn = $('#btn-export-pdf');
+    btn.disabled = true;
+    toast('PDF wird erstellt…', 'info');
+    try {
+      const res = await fetch(`/api/projects/${state.currentProjectId}/export/pdf`);
+      if (!res.ok) throw new Error('PDF request failed');
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition') || '';
+      const m = cd.match(/filename="([^"]+)"/);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = m ? m[1] : 'ingest-report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('PDF heruntergeladen');
+    } catch (e) {
+      toast('PDF konnte nicht erstellt werden', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   // Side panel
   $$('[data-close-panel]').forEach(el => el.addEventListener('click', closeSidePanel));

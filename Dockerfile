@@ -5,6 +5,13 @@ FROM node:22-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Chromium (+ fonts/libs) for server-side PDF rendering via puppeteer-core.
+# puppeteer-core does NOT download its own browser — it uses this system one.
+RUN apk add --no-cache \
+      chromium nss freetype harfbuzz ca-certificates ttf-freefont
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Install only production deps via clean install for reproducibility
 COPY package.json ./
 RUN npm install --omit=dev --no-audit --no-fund \

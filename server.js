@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 const db = require('./database');
 
 const app = express();
@@ -395,7 +396,7 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
     .page { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
     section.day { page-break-inside: auto; }
     thead { display: table-header-group; }
-    @page { margin: 14mm; }
+    @page { size: A4; margin: 14mm; }
   }
 </style>
 </head>
@@ -420,6 +421,56 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
 </body>
 </html>`;
 }
+
+// Locate the system Chromium (prefer the env path if it actually exists).
+function chromiumPath() {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return p; } catch (e) {}
+  }
+  return process.env.PUPPETEER_EXECUTABLE_PATH || candidates[0];
+}
+
+function reportFilename(project, ext) {
+  return `ingest_${(project?.name || 'export').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+}
+
+// Real, server-rendered PDF (one-click download) — renders the report HTML with
+// headless Chromium so it matches the HTML report exactly.
+app.get('/api/projects/:projectId/export/pdf', async (req, res) => {
+  const projectId = Number(req.params.projectId);
+  const project = db.getProject(projectId);
+  const ingests = db.getIngests(projectId);
+  const stats = db.getStats(projectId);
+  const html = buildReportHtml(project, ingests, stats, { print: false });
+
+  let browser;
+  try {
+    const puppeteer = require('puppeteer-core');
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: chromiumPath(),
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${reportFilename(project, 'pdf')}"`);
+    res.send(Buffer.from(pdf));
+  } catch (e) {
+    console.error('PDF generation failed:', e);
+    res.status(500).json({ error: 'PDF konnte nicht erzeugt werden' });
+  } finally {
+    if (browser) { try { await browser.close(); } catch (e) {} }
+  }
+});
 
 app.get('/api/projects/:projectId/export/html', (req, res) => {
   const projectId = Number(req.params.projectId);
