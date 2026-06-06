@@ -125,6 +125,7 @@ function migrate() {
     if (i.day_label === undefined) i.day_label = null;
     if (i.storage_destination === undefined) i.storage_destination = null;
     if (i.sequence_number === undefined) i.sequence_number = null;
+    if (i.stage === undefined) i.stage = null;
   });
 
   // Repair existing data: numbers older entries (incl. those numbered by the old
@@ -394,6 +395,7 @@ function createIngest(projectId, fields) {
     description: fields.description || null,
     path: fields.path || null,
     storage_destination: fields.storage_destination || null,
+    stage: fields.stage || null,
     day_label: dayLabel,
     sequence_number: computeSequenceNumber(projectId, crewId, cameraId, createdAt),
     status: fields.status || 'waiting',
@@ -420,6 +422,7 @@ function updateIngest(id, fields) {
     description: fields.description ?? null,
     path: fields.path ?? null,
     storage_destination: fields.storage_destination ?? null,
+    stage: fields.stage !== undefined ? (fields.stage || null) : ingest.stage,
     day_label: fields.day_label ?? ingest.day_label,
     notes: fields.notes ?? null,
     updated_at: now(),

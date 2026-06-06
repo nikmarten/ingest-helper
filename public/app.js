@@ -744,6 +744,14 @@ function populateStorageDatalist() {
   renderStorageList();
 }
 
+// Suggest stages already used in this project (self-populating per festival).
+function populateStageDatalist() {
+  const dl = $('#stage-datalist');
+  if (!dl) return;
+  const used = Array.from(new Set(state.ingests.map(i => i.stage).filter(Boolean))).sort();
+  dl.innerHTML = used.map(s => `<option value="${esc(s)}">`).join('');
+}
+
 function renderStorageList() {
   const targets = state.currentProject?.storage_targets || [];
   const list = $('#storage-list');
@@ -784,6 +792,7 @@ async function loadIngests() {
     if (state.view === 'cutter') renderCutterView();
   } else {
     populateDayFilter();
+    populateStageDatalist();
     renderActiveView();
     updateStats();
   }
@@ -946,6 +955,7 @@ function renderKCard(i) {
     : `<div class="crew-avatar" style="background:var(--text-4)">?</div>`;
 
   const camTag = (i.camera_short_code || i.camera_name) ? `<span class="kcard-tag cam-tag">${esc(i.camera_short_code || i.camera_name)}</span>` : '';
+  const stageTag = i.stage ? `<span class="kcard-tag stage-tag">${esc(i.stage)}</span>` : '';
 
   const seq = i.sequence_number != null ? String(i.sequence_number).padStart(2, '0') : '';
   const recOrTime = i.status === 'transferring'
@@ -969,6 +979,7 @@ function renderKCard(i) {
         ${avatar}
         <span>${esc(i.crew_name || 'Keine Person')}</span>
         ${camTag ? `<span class="kcard-dot">·</span>${camTag}` : ''}
+        ${stageTag}
       </div>
       ${i.path ? `<div class="kcard-foot"><span class="kcard-path" title="${esc(i.path)}">${esc(i.path)}</span></div>` : ''}
       ${i.status === 'done' ? `<div class="kcard-foot" style="margin-top:8px"><span class="kcard-arrow">→ Cutter</span></div>` : ''}
@@ -1068,6 +1079,7 @@ function renderListRow(i) {
 
   const tags = [];
   if (i.camera_name) tags.push(`<span class="kcard-tag cam-tag">${esc(i.camera_name)}</span>`);
+  if (i.stage) tags.push(`<span class="kcard-tag stage-tag">${esc(i.stage)}</span>`);
 
   const fullPath = fullStoragePath(i);
   const pathHtml = fullPath
@@ -1369,6 +1381,7 @@ function renderCutterRow(i) {
   const isNew = i.status === 'done' && !state.knownDoneIds.has(i.id);
   const tags = [];
   if (i.camera_name) tags.push(`<span class="kcard-tag cam-tag">${esc(i.camera_name)}</span>`);
+  if (i.stage) tags.push(`<span class="kcard-tag stage-tag">${esc(i.stage)}</span>`);
   if (i.day_label) tags.push(`<span class="kcard-tag day-tag">${esc(i.day_label)}</span>`);
 
   const status = i.status === 'done'
@@ -1532,6 +1545,7 @@ function openSidePanel(id) {
   refillCameraSelect($('#sp-camera'), $('#sp-crew'), '— wählen —', ingest.camera_id || '');
   $('#sp-day').value = ingest.day_label || '';
   $('#sp-desc').value = ingest.description || '';
+  $('#sp-stage').value = ingest.stage || '';
   $('#sp-storage').value = ingest.storage_destination || '';
   $('#sp-path').value = ingest.path || '';
   $('#sp-notes').value = ingest.notes || '';
@@ -1869,6 +1883,7 @@ function wireEvents() {
       camera_id: $('#sp-camera').value || null,
       day_label: $('#sp-day').value.trim(),
       description: $('#sp-desc').value.trim(),
+      stage: $('#sp-stage').value.trim(),
       storage_destination: $('#sp-storage').value.trim(),
       path: $('#sp-path').value.trim(),
       notes: $('#sp-notes').value.trim(),

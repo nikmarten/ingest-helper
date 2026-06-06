@@ -786,6 +786,7 @@ select.qa-input { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg
 .kcard-tag.card-tag { color: var(--c-waiting); }
 .kcard-tag.cam-tag { color: var(--text-2); }
 .kcard-tag.day-tag { color: var(--text-3); }
+.kcard-tag.stage-tag { color: var(--accent); border-color: var(--line-2); font-weight: 500; }
 
 .kcard-foot {
   display: flex; align-items: center; justify-content: space-between;

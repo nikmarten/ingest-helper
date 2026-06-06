@@ -154,7 +154,7 @@ app.get('/api/projects/:projectId/export/csv', (req, res) => {
   const project = db.getProject(projectId);
   const ingests = db.getIngests(projectId);
   const statusMap = { waiting: 'Wartend', transferring: 'Wird übertragen', done: 'Fertig', error: 'Fehler' };
-  const headers = ['Nr', 'Tag', 'Erstellt', 'Kamera-Person', 'Kamera', 'Modell', 'Beschreibung', 'Pfad', 'Storage', 'Status', 'Notizen', 'Transfer Start', 'Transfer Ende', 'Transfer Dauer (s)'];
+  const headers = ['Nr', 'Tag', 'Erstellt', 'Kamera-Person', 'Kamera', 'Modell', 'Beschreibung', 'Bühne', 'Pfad', 'Storage', 'Status', 'Notizen', 'Transfer Start', 'Transfer Ende', 'Transfer Dauer (s)'];
   const csvRows = [headers.join(';')];
 
   for (const row of ingests) {
@@ -168,6 +168,7 @@ app.get('/api/projects/:projectId/export/csv', (req, res) => {
       row.id, row.day_label || '', row.created_at,
       row.crew_name || '', row.camera_name || '', row.camera_model || '',
       `"${(row.description || '').replace(/"/g, '""')}"`,
+      row.stage || '',
       `"${(row.path || '').replace(/"/g, '""')}"`,
       row.storage_destination || '',
       statusMap[row.status] || row.status,
@@ -274,7 +275,7 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
       if (i.storage_destination) subBits.push(`<span class="sub-k">Storage</span> ${escHtml(i.storage_destination)}`);
       if (i.notes) subBits.push(`<span class="sub-k">Notiz</span> ${escHtml(i.notes)}`);
       const subLine = subBits.length
-        ? `<tr class="sub"><td></td><td colspan="4">${subBits.join('<span class="sep">·</span>')}</td></tr>`
+        ? `<tr class="sub"><td></td><td colspan="5">${subBits.join('<span class="sep">·</span>')}</td></tr>`
         : '';
       const crewDot = i.crew_color
         ? `<span class="dot" style="background:${escHtml(i.crew_color)}"></span>`
@@ -285,6 +286,7 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
         <td>${crewDot}${escHtml(i.crew_name || '–')}</td>
         <td>${escHtml(cam || '–')}</td>
         <td class="desc">${escHtml(i.description || '–')}</td>
+        <td>${i.stage ? `<span class="stage">${escHtml(i.stage)}</span>` : '–'}</td>
         <td><span class="badge ${i.status}">${escHtml(STATUS_LABELS[i.status] || i.status)}</span><span class="dur">${dur}</span></td>
       </tr>${subLine}`;
     }).join('');
@@ -298,7 +300,7 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
       <table>
         <thead>
           <tr>
-            <th class="nr">Nr</th><th>Kamera-Person</th><th>Kamera</th><th>Beschreibung</th><th>Status</th>
+            <th class="nr">Nr</th><th>Kamera-Person</th><th>Kamera</th><th>Beschreibung</th><th>Bühne</th><th>Status</th>
           </tr>
         </thead>
         <tbody>${tableRows}</tbody>
@@ -359,6 +361,7 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
   tr.sub .sub-k { text-transform: uppercase; letter-spacing: .04em; font-size: 9px; color: #aeaeb4; margin-right: 3px; }
   tr.sub .sep { margin: 0 8px; color: #d4d4d8; }
   tr.sub .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #515154; }
+  .stage { display: inline-block; padding: 2px 8px; border-radius: 5px; background: #ececef; color: #515154; font-size: 11px; font-weight: 600; }
   .empty { color: #76767e; padding: 40px 0; text-align: center; }
   footer.report { margin-top: 28px; border-top: 1px solid #e5e5e7; padding-top: 10px;
     color: #aeaeb4; font-size: 10px; display: flex; justify-content: space-between; }
