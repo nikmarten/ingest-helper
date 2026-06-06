@@ -248,14 +248,21 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
   }
   const orderedDays = [...groups.keys()].sort((a, b) => dayRank(a) - dayRank(b));
 
+  // Full storage location = storage target + generated folder name (the "where").
+  const fullLocation = (i) => {
+    const folder = db.buildFolderName(i, project);
+    const base = (i.storage_destination || '').trim().replace(/[\/\\]+$/, '');
+    if (base && folder) return `${base}/${folder}`;
+    return base || folder || '';
+  };
+
   const summaryCards = [
-    { label: 'Übertragungen', value: stats.total, cls: '' },
-    { label: 'Wartend', value: stats.waiting, cls: 'waiting' },
-    { label: 'Übertragung', value: stats.transferring, cls: 'transferring' },
+    { label: 'Aufnahmen', value: stats.total, cls: '' },
     { label: 'Fertig', value: stats.done, cls: 'done' },
-    { label: 'Fehler', value: stats.errors, cls: 'error' },
-    { label: 'Ø Transfer', value: stats.avg_transfer_seconds ? fmtDurationSec(stats.avg_transfer_seconds) : '–', cls: '' },
+    { label: 'In Arbeit', value: stats.waiting + stats.transferring, cls: 'transferring' },
+    { label: 'Drehtage', value: orderedDays.length, cls: '' },
   ];
+  if (stats.errors) summaryCards.push({ label: 'Fehler', value: stats.errors, cls: 'error' });
 
   const summaryHtml = summaryCards.map(c => `
     <div class="card ${c.cls}">
@@ -267,40 +274,41 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
     const rows = groups.get(day);
 
     const tableRows = rows.map(i => {
-      const cam = [i.camera_name, i.camera_model].filter(Boolean).join(' · ');
-      const dur = fmtDurationSec(transferSeconds(i));
-      const folderName = db.buildFolderName(i, project);
-      const subBits = [];
-      if (folderName) subBits.push(`<span class="sub-k">Ordner</span> <span class="mono">${escHtml(folderName)}</span>`);
-      if (i.storage_destination) subBits.push(`<span class="sub-k">Storage</span> ${escHtml(i.storage_destination)}`);
-      if (i.notes) subBits.push(`<span class="sub-k">Notiz</span> ${escHtml(i.notes)}`);
-      const subLine = subBits.length
-        ? `<tr class="sub"><td></td><td colspan="5">${subBits.join('<span class="sep">·</span>')}</td></tr>`
-        : '';
+      const camBits = [i.camera_short_code || i.camera_name, i.camera_model].filter(Boolean);
+      const cam = camBits.length ? camBits.join(' · ') : '–';
+      const loc = fullLocation(i);
       const crewDot = i.crew_color
         ? `<span class="dot" style="background:${escHtml(i.crew_color)}"></span>`
         : '';
+      const stageBadge = i.stage ? `<span class="stage">${escHtml(i.stage)}</span>` : '';
+      const noteLine = i.notes ? `<div class="note">${escHtml(i.notes)}</div>` : '';
       return `
       <tr>
         <td class="nr">${i.sequence_number != null ? String(i.sequence_number).padStart(3, '0') : '–'}</td>
-        <td>${crewDot}${escHtml(i.crew_name || '–')}</td>
-        <td>${escHtml(cam || '–')}</td>
-        <td class="desc">${escHtml(i.description || '–')}</td>
-        <td>${i.stage ? `<span class="stage">${escHtml(i.stage)}</span>` : '–'}</td>
-        <td><span class="badge ${i.status}">${escHtml(STATUS_LABELS[i.status] || i.status)}</span><span class="dur">${dur}</span></td>
-      </tr>${subLine}`;
+        <td class="rec">
+          <div class="rec-title">${escHtml(i.description || '(ohne Beschreibung)')}${stageBadge}</div>
+          ${noteLine}
+        </td>
+        <td class="who">${crewDot}${escHtml(i.crew_name || '–')}<span class="cam">${escHtml(cam)}</span></td>
+        <td class="loc">${loc ? `<span class="path">${escHtml(loc)}</span>` : '<span class="path none">—</span>'}</td>
+        <td class="st"><span class="badge ${i.status}">${escHtml(STATUS_LABELS[i.status] || i.status)}</span></td>
+      </tr>`;
     }).join('');
 
     return `
     <section class="day">
       <div class="day-head">
         <h2>${escHtml(day)}</h2>
-        <div class="day-sub">${rows.length} Übertragung${rows.length === 1 ? '' : 'en'}</div>
+        <span class="day-sub">${rows.length} Aufnahme${rows.length === 1 ? '' : 'n'}</span>
       </div>
       <table>
         <thead>
           <tr>
-            <th class="nr">Nr</th><th>Kamera-Person</th><th>Kamera</th><th>Beschreibung</th><th>Bühne</th><th>Status</th>
+            <th class="nr">Nr</th>
+            <th>Was wurde gedreht</th>
+            <th>Person · Kamera</th>
+            <th>Speicherort</th>
+            <th class="st">Status</th>
           </tr>
         </thead>
         <tbody>${tableRows}</tbody>
@@ -308,67 +316,85 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
     </section>`;
   }).join('');
 
-  const emptyHtml = `<p class="empty">Noch keine Übertragungen in diesem Projekt.</p>`;
+  const emptyHtml = `<p class="empty">Noch keine Aufnahmen in diesem Projekt.</p>`;
 
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ingest-Report — ${escHtml(projectName)}</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #1d1d1f; background: #f5f5f7; line-height: 1.4; font-size: 13px;
+    color: #14161a; background: #eceef1; line-height: 1.45; font-size: 13px;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .page { max-width: 1000px; margin: 0 auto; padding: 32px; }
-  header.report { display: flex; justify-content: space-between; align-items: flex-end;
-    border-bottom: 2px solid #1d1d1f; padding-bottom: 16px; margin-bottom: 20px; }
-  .brand { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #76767e; margin-bottom: 6px; }
-  h1 { font-size: 26px; margin: 0; }
-  .meta { color: #515154; font-size: 13px; margin-top: 4px; }
-  .gen { text-align: right; color: #76767e; font-size: 11px; }
-  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
-  .card { border: 1px solid #e5e5e7; border-radius: 10px; padding: 12px 14px; background: #fff; }
-  .card-val { font-size: 22px; font-weight: 600; }
-  .card-lbl { font-size: 11px; color: #76767e; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
-  .card.waiting .card-val { color: #b88a30; }
-  .card.transferring .card-val { color: #c97050; }
-  .card.done .card-val { color: #2f8a52; }
-  .card.error .card-val { color: #d11; }
-  section.day { margin-bottom: 22px; page-break-inside: auto; }
-  .day-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;
-    border-bottom: 1px solid #d4d4d8; padding-bottom: 4px; }
-  .day-head h2 { font-size: 16px; margin: 0; }
-  .day-sub { color: #76767e; font-size: 12px; }
+  .page { max-width: 1080px; margin: 24px auto; background: #fff; padding: 44px 48px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); border-radius: 4px; }
+
+  header.report { display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 2.5px solid #14161a; padding-bottom: 18px; margin-bottom: 26px; }
+  .brand { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #9aa0a8; font-weight: 600; margin-bottom: 8px; }
+  h1 { font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+  .meta { color: #4b5563; font-size: 13.5px; margin-top: 8px; }
+  .gen { text-align: right; color: #9aa0a8; font-size: 11px; line-height: 1.5; white-space: nowrap; padding-top: 4px; }
+  .gen strong { color: #4b5563; font-weight: 600; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 34px;
+    border: 1px solid #e6e8eb; border-radius: 8px; overflow: hidden; }
+  .card { flex: 1 1 0; min-width: 120px; padding: 14px 18px; border-right: 1px solid #e6e8eb; }
+  .card:last-child { border-right: none; }
+  .card-val { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .card-lbl { font-size: 10.5px; color: #9aa0a8; text-transform: uppercase; letter-spacing: .07em; margin-top: 3px; font-weight: 600; }
+  .card.done .card-val { color: #1f7a44; }
+  .card.transferring .card-val { color: #b4651f; }
+  .card.error .card-val { color: #c0271a; }
+
+  section.day { margin-bottom: 30px; }
+  .day-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .day-head h2 { font-size: 17px; margin: 0; letter-spacing: -0.01em; }
+  .day-sub { color: #9aa0a8; font-size: 12px; font-weight: 500; }
+
   table { width: 100%; border-collapse: collapse; }
-  thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
-    color: #76767e; padding: 6px 8px; border-bottom: 1px solid #e5e5e7; }
-  tbody td { padding: 7px 8px; border-bottom: 1px solid #ececef; vertical-align: top; }
+  thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    color: #6b7280; font-weight: 700; padding: 0 12px 8px; border-bottom: 2px solid #14161a; }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid #eef0f2; vertical-align: top; }
   tbody tr { page-break-inside: avoid; }
-  td.nr, th.nr { width: 42px; font-variant-numeric: tabular-nums; color: #76767e; }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td.desc { font-weight: 500; }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge.waiting { background: #f7eed4; color: #8a6713; }
-  .badge.transferring { background: #f7e2d6; color: #a3502c; }
-  .badge.done { background: #d8f0e1; color: #1f6b3c; }
-  .badge.error { background: #fbdad7; color: #b01; }
-  .dur { color: #76767e; font-size: 11px; margin-left: 8px; font-variant-numeric: tabular-nums; }
-  tr.sub td { border-bottom: 1px solid #ececef; padding-top: 0; color: #76767e; font-size: 11px; }
-  tr.sub .sub-k { text-transform: uppercase; letter-spacing: .04em; font-size: 9px; color: #aeaeb4; margin-right: 3px; }
-  tr.sub .sep { margin: 0 8px; color: #d4d4d8; }
-  tr.sub .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #515154; }
-  .stage { display: inline-block; padding: 2px 8px; border-radius: 5px; background: #ececef; color: #515154; font-size: 11px; font-weight: 600; }
-  .empty { color: #76767e; padding: 40px 0; text-align: center; }
-  footer.report { margin-top: 28px; border-top: 1px solid #e5e5e7; padding-top: 10px;
-    color: #aeaeb4; font-size: 10px; display: flex; justify-content: space-between; }
+  tbody tr:nth-child(even) { background: #f8f9fa; }
+
+  td.nr, th.nr { width: 46px; font-variant-numeric: tabular-nums; color: #9aa0a8; font-weight: 600; }
+  td.rec { width: 38%; }
+  .rec-title { font-size: 14px; font-weight: 600; color: #14161a; }
+  .note { color: #6b7280; font-size: 11.5px; margin-top: 3px; font-style: italic; }
+  .stage { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 4px;
+    background: #14161a; color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; vertical-align: middle; }
+  td.who { color: #14161a; font-weight: 500; white-space: nowrap; }
+  td.who .cam { display: block; color: #6b7280; font-weight: 400; font-size: 11.5px; margin-top: 2px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+  td.loc { width: 34%; }
+  .path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px;
+    color: #374151; background: #f3f4f6; padding: 3px 7px; border-radius: 4px; word-break: break-all; }
+  .path.none { background: none; color: #c4c8cd; }
+  td.st, th.st { text-align: right; white-space: nowrap; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.waiting { background: #f3edda; color: #84671a; }
+  .badge.transferring { background: #f6e3d4; color: #a3501f; }
+  .badge.done { background: #d9f0e2; color: #1f7a44; }
+  .badge.error { background: #fbdad7; color: #c0271a; }
+
+  .empty { color: #9aa0a8; padding: 60px 0; text-align: center; }
+  footer.report { margin-top: 34px; border-top: 1px solid #e6e8eb; padding-top: 12px;
+    color: #9aa0a8; font-size: 10.5px; display: flex; justify-content: space-between; }
+
   @media print {
-    body { background: #fff; font-size: 11px; }
-    .page { max-width: none; padding: 0; }
-    .card { break-inside: avoid; }
+    body { background: #fff; font-size: 10.5px; }
+    .page { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
+    section.day { page-break-inside: auto; }
+    thead { display: table-header-group; }
     @page { margin: 14mm; }
   }
 </style>
@@ -377,17 +403,17 @@ function buildReportHtml(project, ingests, stats, { print = false } = {}) {
   <div class="page">
     <header class="report">
       <div>
-        <div class="brand">Ingest List · Report</div>
+        <div class="brand">Ingest&nbsp;·&nbsp;Aufnahmebericht</div>
         <h1>${escHtml(projectName)}</h1>
         ${metaBits.length ? `<div class="meta">${metaBits.join(' &nbsp;·&nbsp; ')}</div>` : ''}
       </div>
-      <div class="gen">Erstellt<br>${escHtml(generatedAt)}</div>
+      <div class="gen">Erstellt am<br><strong>${escHtml(generatedAt)}</strong></div>
     </header>
     <div class="summary">${summaryHtml}</div>
     ${ingests.length ? daySections : emptyHtml}
     <footer class="report">
-      <span>Ingest List</span>
-      <span>${stats.total} Übertragung${stats.total === 1 ? '' : 'en'} · ${escHtml(projectName)}</span>
+      <span>Ingest List · Aufnahmebericht</span>
+      <span>${stats.total} Aufnahme${stats.total === 1 ? '' : 'n'} · ${escHtml(projectName)}</span>
     </footer>
   </div>
   ${print ? '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});</script>' : ''}
