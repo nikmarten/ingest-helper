@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nik Behrendt — Kameramann · Drohnenpilot · AI Artist</title>
+  <meta name="description" content="Nik Behrendt — freiberuflicher Kameramann, Drohnenpilot und AI Artist aus Berlin. Kamera für TV & Film, Luftaufnahmen, KI-gestützte Bildwelten." />
+  <meta property="og:title" content="Nik Behrendt — Kameramann · Drohnenpilot · AI Artist" />
+  <meta property="og:description" content="Bewegtbild von Boden bis Luft bis Latent Space. Berlin & überall." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="cursor" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <a href="#top" class="nav__logo">NB<span class="nav__logo-dot">.</span></a>
+    <nav class="nav__links">
+      <a href="#leistungen">Leistungen</a>
+      <a href="#arbeiten">Arbeiten</a>
+      <a href="#ueber">Über</a>
+    </nav>
+    <a href="#kontakt" class="btn btn--small" data-magnetic>Projekt anfragen</a>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      <div class="hero__inner">
+        <p class="hero__eyebrow reveal">Berlin · verfügbar weltweit</p>
+        <h1 class="hero__title">
+          <span class="hero__line reveal">NIK</span>
+          <span class="hero__line hero__line--outline reveal">BEHRENDT</span>
+        </h1>
+        <div class="hero__sub reveal">
+          <span class="hero__sub-static">Freiberuflicher&nbsp;</span>
+          <span class="hero__rotator">
+            <span class="is-active">Kameramann</span>
+            <span>Drohnenpilot</span>
+            <span>AI&nbsp;Artist</span>
+          </span>
+        </div>
+        <p class="hero__copy reveal">
+          Bewegtbild von Boden bis Luft bis Latent&nbsp;Space.
+          Kamera für TV&nbsp;&amp;&nbsp;Film, kinoreife Luftaufnahmen
+          und KI-generierte Bildwelten — aus einer Hand.
+        </p>
+        <div class="hero__cta reveal">
+          <a href="#arbeiten" class="btn" data-magnetic>Arbeiten ansehen</a>
+          <a href="#kontakt" class="btn btn--ghost" data-magnetic>Kontakt</a>
+        </div>
+      </div>
+      <div class="hero__scroll" aria-hidden="true">
+        <span></span>
+      </div>
+    </section>
+
+    <!-- ============ MARQUEE ============ -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>Late Night Berlin</span><i>✦</i>
+        <span>Joko &amp; Klaas gegen ProSieben</span><i>✦</i>
+        <span>Duell um die Welt</span><i>✦</i>
+        <span>Wer stiehlt mir die Show?</span><i>✦</i>
+        <span>Florida Entertainment</span><i>✦</i>
+        <span>Late Night Berlin</span><i>✦</i>
+        <span>Joko &amp; Klaas gegen ProSieben</span><i>✦</i>
+        <span>Duell um die Welt</span><i>✦</i>
+        <span>Wer stiehlt mir die Show?</span><i>✦</i>
+        <span>Florida Entertainment</span><i>✦</i>
+      </div>
+    </div>
+
+    <!-- ============ LEISTUNGEN ============ -->
+    <section class="section" id="leistungen">
+      <div class="section__head reveal">
+        <span class="section__num">01</span>
+        <h2>Leistungen</h2>
+      </div>
+      <div class="services">
+        <article class="service reveal" data-tilt>
+          <div class="service__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10.5 22 7v10l-6-3.5"/></svg>
+          </div>
+          <h3>Kamera</h3>
+          <p>
+            Kameramann für TV-Shows, Dokumentationen und Werbung.
+            Show-Erfahrung aus großen Studio- und Live-Produktionen —
+            schnell, präzise, sendefähig.
+          </p>
+          <ul>
+            <li>Studio &amp; Live</li>
+            <li>EB / Doku</li>
+            <li>Gimbal &amp; Handheld</li>
+          </ul>
+        </article>
+        <article class="service reveal" data-tilt>
+          <div class="service__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M7 7l2.5 2.5M17 7l-2.5 2.5M7 17l2.5-2.5M17 17l-2.5-2.5"/></svg>
+          </div>
+          <h3>Drohne</h3>
+          <p>
+            Kinoreife Luftaufnahmen für Film, Werbung und Events.
+            Etablierte Flugplanung, saubere Genehmigungslage und
+            ein Blick, der auch aus 120&nbsp;Metern erzählt.
+          </p>
+          <ul>
+            <li>Cinematic Aerials</li>
+            <li>Hyperlapse aus der Luft</li>
+            <li>Inspektion &amp; Location-Scouting</li>
+          </ul>
+        </article>
+        <article class="service reveal" data-tilt>
+          <div class="service__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/></svg>
+          </div>
+          <h3>AI Art</h3>
+          <p>
+            KI-gestützte Bildwelten, Konzept-Visuals und generative
+            Videosequenzen. Wo die Kamera aufhört, fängt der
+            Latent&nbsp;Space an — Moodboards bis fertige Assets.
+          </p>
+          <ul>
+            <li>Generative Visuals</li>
+            <li>Concept Art &amp; Pitch-Decks</li>
+            <li>AI Video &amp; Compositing</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ ARBEITEN ============ -->
+    <section class="section" id="arbeiten">
+      <div class="section__head reveal">
+        <span class="section__num">02</span>
+        <h2>Ausgewählte Arbeiten</h2>
+      </div>
+      <div class="works">
+        <a class="work reveal" href="#kontakt">
+          <div class="work__thumb work__thumb--1"><span class="work__play">▶</span></div>
+          <div class="work__meta">
+            <h3>Showreel 2026</h3>
+            <p>Kamera · Drohne · AI</p>
+          </div>
+        </a>
+        <a class="work reveal" href="#kontakt">
+          <div class="work__thumb work__thumb--2"><span class="work__play">▶</span></div>
+          <div class="work__meta">
+            <h3>Studio &amp; Show</h3>
+            <p>TV-Entertainment, Berlin</p>
+          </div>
+        </a>
+        <a class="work reveal" href="#kontakt">
+          <div class="work__thumb work__thumb--3"><span class="work__play">▶</span></div>
+          <div class="work__meta">
+            <h3>Aerial Reel</h3>
+            <p>Drohnen-Cinematography</p>
+          </div>
+        </a>
+        <a class="work reveal" href="#kontakt">
+          <div class="work__thumb work__thumb--4"><span class="work__play">▶</span></div>
+          <div class="work__meta">
+            <h3>Latent Spaces</h3>
+            <p>AI-Art-Serie</p>
+          </div>
+        </a>
+      </div>
+      <p class="works__note reveal">
+        Volles Reel &amp; Referenzen auf Anfrage — <a href="#kontakt">einfach melden</a>.
+      </p>
+    </section>
+
+    <!-- ============ ÜBER ============ -->
+    <section class="section" id="ueber">
+      <div class="section__head reveal">
+        <span class="section__num">03</span>
+        <h2>Über mich</h2>
+      </div>
+      <div class="about">
+        <div class="about__text reveal">
+          <p class="about__lead">
+            Ich bin Nik — Filmemacher aus Berlin. Gelernt habe ich das
+            Handwerk im Studium <em>(B.Sc. Medieninformatik&nbsp;–&nbsp;Film,
+            Hochschule Flensburg)</em> und in der Praxis bei großen
+            TV-Entertainment-Produktionen.
+          </p>
+          <p>
+            Heute arbeite ich freiberuflich an der Schnittstelle von
+            klassischer Kameraarbeit, Drohnen-Cinematography und
+            generativer KI. Drei Disziplinen, ein Ziel: Bilder, die
+            hängen bleiben.
+          </p>
+        </div>
+        <div class="about__stats">
+          <div class="stat reveal"><strong data-count="8">0</strong><span>Jahre hinter der Kamera</span></div>
+          <div class="stat reveal"><strong data-count="120">0</strong><span>Drehtage pro Jahr</span></div>
+          <div class="stat reveal"><strong data-count="3">0</strong><span>Disziplinen, ein Anruf</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ KONTAKT ============ -->
+    <section class="contact" id="kontakt">
+      <p class="contact__eyebrow reveal">Nächstes Projekt?</p>
+      <a href="mailto:sgtnirendttv@gmail.com" class="contact__mail reveal" data-magnetic>
+        Schreib&nbsp;mir<span class="contact__arrow">↗</span>
+      </a>
+      <p class="contact__sub reveal">sgtnirendttv@gmail.com · Berlin, Deutschland</p>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 Nik Behrendt</span>
+    <span>Kamera · Drohne · AI</span>
+    <a href="#top">Nach oben ↑</a>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
