@@ -37,6 +37,8 @@ app.use((req, res, next) => {
   if (req.path === '/api/login' && req.method === 'POST') return next();
   if (req.path === '/healthz') return next();
   if (req.path === '/favicon.ico' || req.path === '/favicon.svg') return next();
+  // Public portfolio site — intentionally not behind the ingest password.
+  if (req.path === '/portfolio' || req.path.startsWith('/portfolio/')) return next();
   if (isAuthenticated(req)) return next();
   if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
   return res.redirect('/login');
@@ -59,6 +61,7 @@ app.post('/api/login', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/portfolio', express.static(path.join(__dirname, 'portfolio')));
 
 // --- SSE for real-time sync ---
 

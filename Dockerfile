@@ -20,6 +20,7 @@ RUN npm install --omit=dev --no-audit --no-fund \
 # Copy application sources
 COPY server.js database.js ./
 COPY public ./public
+COPY portfolio ./portfolio
 
 # Persistent data dir (mounted as volume)
 RUN mkdir -p /app/data && chown -R node:node /app
